@@ -34,17 +34,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($password !== $confirm_password) $errors[] = "Passwords do not match";
     if (strlen($password) < 6) $errors[] = "Password must be at least 6 characters";
 
-    // Check username
-    $check_username = $conn->prepare("SELECT user_id FROM users WHERE username = ?");
-    $check_username->bind_param("s", $username);
-    $check_username->execute();
-    if ($check_username->get_result()->num_rows > 0) $errors[] = "Username already exists";
+    // Check username using PDO
+    try {
+        $check_username = $pdo->prepare("SELECT user_id FROM users WHERE username = ?");
+        $check_username->execute([$username]);
+        if ($check_username->rowCount() > 0) $errors[] = "Username already exists";
 
-    // Check email
-    $check_email = $conn->prepare("SELECT user_id FROM users WHERE email = ?");
-    $check_email->bind_param("s", $email);
-    $check_email->execute();
-    if ($check_email->get_result()->num_rows > 0) $errors[] = "Email already registered";
+        // Check email
+        $check_email = $pdo->prepare("SELECT user_id FROM users WHERE email = ?");
+        $check_email->execute([$email]);
+        if ($check_email->rowCount() > 0) $errors[] = "Email already registered";
+    } catch(PDOException $e) {
+        $errors[] = "Database error: " . $e->getMessage();
+    }
 
     if (!empty($errors)) {
         $error = implode("<br>", $errors);
@@ -52,15 +54,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Hash password
         $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
-        // Insert new user
-        $stmt = $conn->prepare("INSERT INTO users (username, email, password_hash, full_name, user_type, phone) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssssss", $username, $email, $password_hash, $full_name, $user_type, $phone);
-
-        if ($stmt->execute()) {
+        // Insert new user using PDO
+        try {
+            $stmt = $pdo->prepare("INSERT INTO users (username, email, password_hash, full_name, user_type, phone) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$username, $email, $password_hash, $full_name, $user_type, $phone]);
+            
             $success = "Registration successful! Redirecting to login...";
             header("refresh:2;url=login.php");
-        } else {
-            $error = "Registration failed: " . $stmt->error;
+        } catch(PDOException $e) {
+            $error = "Registration failed: " . $e->getMessage();
         }
     }
 }
