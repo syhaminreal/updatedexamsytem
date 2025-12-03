@@ -1,967 +1,586 @@
 <?php
-// results.php
-session_start();
-require_once 'db_connection.php';
+// Database configuration
+$host = 'localhost';
+$dbname = 'exaam';
+$username = 'root';
+$password = '';
 
-// Check if user is logged in
-// if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
-//     header("Location: login.php");
-//     exit();
-// }
-
-// $user_id = $_SESSION['user_id'];
-// $user_type = $_SESSION['user_type'];
-
-// Fetch user's exam results
-// Note: You need to create exam_results table with appropriate structure
-$results = [];
-$overall_stats = [
-    'total_exams' => 0,
-    'average_score' => 0,
-    'highest_score' => 0,
-    'passed_exams' => 0
-];
-
-// Sample data for demonstration
-$sample_results = [
-    [
-        'exam_id' => 1,
-        'exam_title' => 'Mathematics Final Exam',
-        'total_marks' => 100,
-        'obtained_marks' => 85,
-        'percentage' => 85,
-        'passing_marks' => 40,
-        'exam_date' => '2025-12-01',
-        'status' => 'passed',
-        'duration' => '60 min',
-        'questions' => 40
-    ],
-    [
-        'exam_id' => 2,
-        'exam_title' => 'Science Quiz - Physics',
-        'total_marks' => 50,
-        'obtained_marks' => 42,
-        'percentage' => 84,
-        'passing_marks' => 25,
-        'exam_date' => '2025-11-28',
-        'status' => 'passed',
-        'duration' => '30 min',
-        'questions' => 20
-    ],
-    [
-        'exam_id' => 3,
-        'exam_title' => 'English Grammar Test',
-        'total_marks' => 75,
-        'obtained_marks' => 60,
-        'percentage' => 80,
-        'passing_marks' => 30,
-        'exam_date' => '2025-11-25',
-        'status' => 'passed',
-        'duration' => '45 min',
-        'questions' => 35
-    ],
-    [
-        'exam_id' => 4,
-        'exam_title' => 'History Midterm',
-        'total_marks' => 100,
-        'obtained_marks' => 35,
-        'percentage' => 35,
-        'passing_marks' => 40,
-        'exam_date' => '2025-11-20',
-        'status' => 'failed',
-        'duration' => '60 min',
-        'questions' => 50
-    ],
-];
-
-$results = $sample_results;
-
-// Calculate overall stats
-if (!empty($results)) {
-    $overall_stats['total_exams'] = count($results);
-    $total_percentage = 0;
-    $highest = 0;
-    $passed = 0;
-    
-    foreach ($results as $result) {
-        $total_percentage += $result['percentage'];
-        if ($result['percentage'] > $highest) {
-            $highest = $result['percentage'];
-        }
-        if ($result['status'] == 'passed') {
-            $passed++;
-        }
-    }
-    
-    $overall_stats['average_score'] = round($total_percentage / count($results), 1);
-    $overall_stats['highest_score'] = $highest;
-    $overall_stats['passed_exams'] = $passed;
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    die("Database connection failed: " . $e->getMessage());
 }
 
-// Check if viewing specific exam result
-$view_exam_id = isset($_GET['exam_id']) ? intval($_GET['exam_id']) : 0;
+// Get exam results data (last 20 results)
+$examResultsQuery = "
+    SELECT er.*, e.exam_title, ea.student_email 
+    FROM exam_results er
+    JOIN exams e ON er.exam_id = e.exam_id
+    LEFT JOIN exam_attempts ea ON er.attempt_id = ea.attempt_id
+    ORDER BY er.completed_at DESC
+    LIMIT 20
+";
+$examResults = $pdo->query($examResultsQuery)->fetchAll();
+
+// Get exam statistics
+$statsQuery = "
+    SELECT 
+        COUNT(DISTINCT er.result_id) as total_results,
+        COUNT(DISTINCT er.student_name) as total_students,
+        AVG(er.percentage) as avg_percentage,
+        SUM(CASE WHEN er.status = 'PASS' THEN 1 ELSE 0 END) as passed_count,
+        SUM(CASE WHEN er.status = 'FAIL' THEN 1 ELSE 0 END) as failed_count
+    FROM exam_results er
+";
+$stats = $pdo->query($statsQuery)->fetch();
+$totalResults = $stats['total_results'];
+$passedCount = $stats['passed_count'];
+$failedCount = $stats['failed_count'];
+$passRate = $totalResults > 0 ? ($passedCount / $totalResults) * 100 : 0;
+$avgPercentage = $stats['avg_percentage'] ? round($stats['avg_percentage'], 1) : 0;
+
+// Get user data (last 15 users)
+$usersQuery = "SELECT * FROM users ORDER BY created_at DESC LIMIT 15";
+$users = $pdo->query($usersQuery)->fetchAll();
+
+// Get user statistics
+$userStatsQuery = "
+    SELECT 
+        COUNT(*) as total_users,
+        SUM(CASE WHEN user_type = 'student' THEN 1 ELSE 0 END) as students_count,
+        SUM(CASE WHEN user_type = 'teacher' THEN 1 ELSE 0 END) as teachers_count,
+        SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_users
+    FROM users
+";
+$userStats = $pdo->query($userStatsQuery)->fetch();
 ?>
 <!DOCTYPE html>
-<html lang="en" class="dark-theme">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Results - ExamPro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <title>Admin Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --accent: #3b82f6;
-            --accent-hover: #2563eb;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --border: #334155;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --dark-bg: #0f172a;
+            --dark-card: #1e293b;
+            --dark-card-hover: #334155;
+            --dark-border: #475569;
+            --dark-text: #f1f5f9;
+            --dark-text-secondary: #94a3b8;
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
             min-height: 100vh;
+            padding: 20px;
         }
-        
-        .navbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1rem 2rem;
-            background: rgba(15, 23, 42, 0.9);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-weight: 700;
-            font-size: 1.2rem;
-            color: var(--accent);
-            text-decoration: none;
-        }
-        
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
-        
-        .nav-link {
-            color: var(--text-secondary);
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-        
-        .nav-link:hover {
-            color: var(--accent);
-        }
-        
-        .btn {
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            border: none;
-            font-size: 0.95rem;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-            color: white;
-            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
-        }
-        
-        .btn-secondary {
-            background: transparent;
-            color: var(--text-secondary);
-            border: 1px solid var(--border);
-        }
-        
-        .btn-secondary:hover {
-            background: var(--bg-secondary);
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-        
-        .btn-success {
-            background: linear-gradient(135deg, var(--success), #0d9c6f);
-            color: white;
-        }
-        
-        .btn-danger {
-            background: linear-gradient(135deg, var(--danger), #dc2626);
-            color: white;
-        }
-        
+
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        
-        .results-header {
-            text-align: center;
-            margin-bottom: 3rem;
-        }
-        
-        .results-header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, var(--text-primary), var(--accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .results-header p {
-            color: var(--text-secondary);
-            max-width: 600px;
+            max-width: 1400px;
             margin: 0 auto;
         }
-        
-        /* Stats Cards */
+
+        /* Header */
+        .header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--dark-border);
+        }
+
+        .header h1 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.8rem;
+        }
+
+        .header h1 i {
+            color: var(--primary-color);
+        }
+
+        /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1.5rem;
-            margin-bottom: 3rem;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
         }
-        
-        .stat-card {
-            background: var(--bg-secondary);
-            padding: 1.5rem;
-            border-radius: 15px;
-            border: 1px solid var(--border);
+
+        .stat-box {
+            background-color: var(--dark-card);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             text-align: center;
-            transition: all 0.3s;
         }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--accent);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-        
+
         .stat-icon {
-            width: 60px;
-            height: 60px;
-            background: rgba(59, 130, 246, 0.1);
-            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 1rem;
-            color: var(--accent);
-            font-size: 1.5rem;
+            margin-bottom: 10px;
+            font-size: 22px;
         }
-        
-        .stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            color: var(--text-primary);
+
+        .stat-icon.results { background-color: rgba(99, 102, 241, 0.15); color: var(--primary-color); }
+        .stat-icon.passed { background-color: rgba(16, 185, 129, 0.15); color: var(--secondary-color); }
+        .stat-icon.failed { background-color: rgba(239, 68, 68, 0.15); color: var(--danger-color); }
+        .stat-icon.avg { background-color: rgba(245, 158, 11, 0.15); color: var(--warning-color); }
+        .stat-icon.users { background-color: rgba(99, 102, 241, 0.15); color: var(--primary-color); }
+        .stat-icon.students { background-color: rgba(16, 185, 129, 0.15); color: var(--secondary-color); }
+        .stat-icon.teachers { background-color: rgba(245, 158, 11, 0.15); color: var(--warning-color); }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
         }
-        
+
         .stat-label {
-            color: var(--text-secondary);
+            color: var(--dark-text-secondary);
             font-size: 0.9rem;
         }
-        
-        /* Results Table */
-        .results-table-container {
-            background: var(--bg-secondary);
-            border-radius: 15px;
-            border: 1px solid var(--border);
-            overflow: hidden;
-            margin-bottom: 2rem;
+
+        /* Content Sections */
+        .content-sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
         }
-        
-        .table-header {
+
+        @media (max-width: 768px) {
+            .content-sections {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .section {
+            background-color: var(--dark-card);
+            border-radius: 10px;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--border);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--dark-border);
         }
-        
-        .table-header h2 {
-            font-size: 1.3rem;
-            color: var(--text-primary);
-        }
-        
-        .table-actions {
+
+        .section-title {
             display: flex;
-            gap: 1rem;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
         }
-        
+
+        .section-title i {
+            color: var(--primary-color);
+        }
+
+        .view-all {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .view-all:hover {
+            text-decoration: underline;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
         }
-        
-        thead {
-            background: rgba(15, 23, 42, 0.6);
-        }
-        
+
         th {
-            padding: 1rem 1.5rem;
+            padding: 12px 10px;
             text-align: left;
-            color: var(--text-secondary);
             font-weight: 600;
+            color: var(--dark-text-secondary);
+            border-bottom: 1px solid var(--dark-border);
             font-size: 0.9rem;
-            border-bottom: 1px solid var(--border);
         }
-        
+
         td {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border);
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--dark-border);
+            font-size: 0.9rem;
         }
-        
-        tbody tr {
-            transition: background 0.3s;
-        }
-        
+
         tbody tr:hover {
-            background: rgba(59, 130, 246, 0.05);
+            background-color: var(--dark-card-hover);
         }
-        
-        .exam-title {
+
+        /* Status Badges */
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
             font-weight: 600;
-            color: var(--text-primary);
-        }
-        
-        .exam-meta {
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            margin-top: 0.25rem;
-        }
-        
-        .status-badge {
             display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 500;
         }
-        
-        .status-passed {
-            background: rgba(16, 185, 129, 0.1);
-            color: #6ee7b7;
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-        
-        .status-failed {
-            background: rgba(239, 68, 68, 0.1);
-            color: #fca5a5;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-        
-        .score-cell {
-            text-align: center;
-        }
-        
-        .score-value {
-            font-size: 1.2rem;
-            font-weight: 700;
-        }
-        
-        .score-passed {
-            color: var(--success);
-        }
-        
-        .score-failed {
-            color: var(--danger);
-        }
-        
-        .progress-bar {
-            height: 6px;
-            background: var(--border);
-            border-radius: 3px;
-            margin-top: 0.5rem;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            border-radius: 3px;
-        }
-        
-        .progress-success {
-            background: linear-gradient(90deg, var(--success), #0d9c6f);
-        }
-        
-        .progress-warning {
-            background: linear-gradient(90deg, var(--warning), #d97706);
-        }
-        
-        .progress-danger {
-            background: linear-gradient(90deg, var(--danger), #dc2626);
-        }
-        
-        /* Performance Chart */
-        .performance-chart {
-            background: var(--bg-secondary);
-            border-radius: 15px;
-            padding: 2rem;
-            border: 1px solid var(--border);
-            margin-top: 2rem;
-        }
-        
-        .chart-header {
+
+        .badge-passed { background-color: rgba(16, 185, 129, 0.15); color: var(--secondary-color); }
+        .badge-failed { background-color: rgba(239, 68, 68, 0.15); color: var(--danger-color); }
+        .badge-student { background-color: rgba(16, 185, 129, 0.15); color: var(--secondary-color); }
+        .badge-teacher { background-color: rgba(245, 158, 11, 0.15); color: var(--warning-color); }
+        .badge-admin { background-color: rgba(99, 102, 241, 0.15); color: var(--primary-color); }
+        .badge-active { background-color: rgba(16, 185, 129, 0.15); color: var(--secondary-color); }
+        .badge-inactive { background-color: rgba(239, 68, 68, 0.15); color: var(--danger-color); }
+
+        /* User Avatar */
+        .user-cell {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem;
+            gap: 8px;
         }
-        
-        .chart-container {
-            height: 300px;
-            position: relative;
-        }
-        
-        .chart-placeholder {
-            height: 100%;
-            background: rgba(15, 23, 42, 0.3);
-            border-radius: 10px;
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--text-secondary);
-            font-size: 1.1rem;
+            font-weight: bold;
+            font-size: 0.85rem;
         }
-        
-        /* Exam Detail View */
-        .exam-detail-view {
-            background: var(--bg-secondary);
-            border-radius: 15px;
-            padding: 2rem;
-            border: 1px solid var(--border);
-            margin-bottom: 2rem;
-        }
-        
-        .detail-header {
-            display: flex;
-            justify-content: space-between;
+
+        /* Actions */
+        .action-btn {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: none;
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: inline-flex;
             align-items: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border);
+            gap: 4px;
+            transition: all 0.2s ease;
         }
-        
-        .detail-stats {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
-            margin-bottom: 2rem;
+
+        .action-btn:hover {
+            background-color: var(--dark-card-hover);
         }
-        
-        .detail-stat {
+
+        .action-btn.view:hover { color: var(--primary-color); }
+        .action-btn.delete:hover { color: var(--danger-color); }
+        .action-btn.edit:hover { color: var(--warning-color); }
+
+        /* Footer */
+        .footer {
             text-align: center;
-            padding: 1.5rem;
-            background: rgba(15, 23, 42, 0.3);
-            border-radius: 10px;
-            border: 1px solid var(--border);
-        }
-        
-        .detail-stat .value {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-        
-        .detail-stat .label {
-            color: var(--text-secondary);
+            padding-top: 20px;
+            border-top: 1px solid var(--dark-border);
+            color: var(--dark-text-secondary);
             font-size: 0.9rem;
         }
-        
-        .question-analysis {
-            margin-top: 2rem;
-        }
-        
-        .question-item {
-            background: rgba(15, 23, 42, 0.3);
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            border: 1px solid var(--border);
-        }
-        
-        .question-status {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            margin-right: 10px;
-        }
-        
-        .status-correct {
-            background: var(--success);
-        }
-        
-        .status-incorrect {
-            background: var(--danger);
-        }
-        
-        @media (max-width: 992px) {
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .detail-stats {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            table {
-                display: block;
-                overflow-x: auto;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
-            
-            .navbar {
-                padding: 1rem;
-            }
-            
-            .nav-links {
-                gap: 1rem;
-            }
-            
-            .results-header h1 {
-                font-size: 2rem;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .detail-stats {
-                grid-template-columns: 1fr;
-            }
-            
-            .table-header {
-                flex-direction: column;
-                gap: 1rem;
-                align-items: flex-start;
-            }
-            
-            .table-actions {
-                width: 100%;
-                justify-content: space-between;
-            }
-        }
+/* Header container */
+.header {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* space between button and title */
+    margin-bottom: 30px;
+}
+
+/* Back button */
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #2b2b2b;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid #444;
+    transition: all 0.2s ease;
+}
+
+.btn-back:hover {
+    background-color: #444;
+    border-color: #666;
+    color: #fff;
+}
+
+/* Header title */
+.header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px; /* space between icon and text */
+    margin: 0;
+}
+
+
+
     </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <a href="dashboard.php" class="logo">
-            <i class="fas fa-graduation-cap"></i>
-            <span>ExamPro</span>
-        </a>
-        
-        <div class="nav-links">
-            <a href="dashboard.php" class="nav-link">
-                <i class="fas fa-home"></i> Dashboard
-            </a>
-            <a href="results.php" class="nav-link">
-                <i class="fas fa-chart-bar"></i> Results
-            </a>
-            <a href="profile.php" class="nav-link">
-                <i class="fas fa-user"></i> Profile
-            </a>
-            <a href="logout.php" class="btn btn-secondary">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
-        </div>
-    </nav>
-    
-    <!-- Main Content -->
     <div class="container">
-        <div class="results-header">
-            <h1>My Examination Results</h1>
-            <p>Track your performance, view detailed analytics, and monitor your progress</p>
+        <!-- Header -->
+        <div class="header">
+               <a href="index.php" class="btn-back">⬅ Back</a>
+            <h1>
+                <i class="fas fa-tachometer-alt"></i>
+              Exam Overview
+            </h1>
+
         </div>
-        
-        <?php if ($view_exam_id > 0): ?>
-            <!-- Detailed Exam Result View -->
-            <?php 
-            $selected_exam = null;
-            foreach ($results as $result) {
-                if ($result['exam_id'] == $view_exam_id) {
-                    $selected_exam = $result;
-                    break;
-                }
-            }
+
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <!-- Exam Stats -->
+            <div class="stat-box">
+                <div class="stat-icon results">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="stat-value"><?php echo number_format($totalResults); ?></div>
+                <div class="stat-label">Total Results</div>
+            </div>
             
-            if ($selected_exam):
-            ?>
-            <div class="exam-detail-view">
-                <div class="detail-header">
-                    <div>
-                        <h2 style="margin-bottom: 0.5rem;"><?php echo htmlspecialchars($selected_exam['exam_title']); ?></h2>
-                        <p style="color: var(--text-secondary);">
-                            Exam Date: <?php echo date('F d, Y', strtotime($selected_exam['exam_date'])); ?>
-                        </p>
-                    </div>
-                    <div>
-                        <span class="status-badge <?php echo $selected_exam['status'] == 'passed' ? 'status-passed' : 'status-failed'; ?>">
-                            <?php echo ucfirst($selected_exam['status']); ?>
-                        </span>
-                    </div>
+            <div class="stat-box">
+                <div class="stat-icon passed">
+                    <i class="fas fa-check-circle"></i>
                 </div>
-                
-                <div class="detail-stats">
-                    <div class="detail-stat">
-                        <div class="value <?php echo $selected_exam['status'] == 'passed' ? 'score-passed' : 'score-failed'; ?>">
-                            <?php echo $selected_exam['obtained_marks']; ?>/<?php echo $selected_exam['total_marks']; ?>
-                        </div>
-                        <div class="label">Marks Obtained</div>
-                    </div>
-                    
-                    <div class="detail-stat">
-                        <div class="value <?php echo $selected_exam['percentage'] >= 60 ? 'score-passed' : ($selected_exam['percentage'] >= 40 ? 'score-warning' : 'score-failed'); ?>">
-                            <?php echo $selected_exam['percentage']; ?>%
-                        </div>
-                        <div class="label">Percentage</div>
-                    </div>
-                    
-                    <div class="detail-stat">
-                        <div class="value">
-                            <?php echo $selected_exam['duration']; ?>
-                        </div>
-                        <div class="label">Duration</div>
-                    </div>
-                    
-                    <div class="detail-stat">
-                        <div class="value">
-                            <?php echo $selected_exam['questions']; ?>
-                        </div>
-                        <div class="label">Questions</div>
-                    </div>
+                <div class="stat-value"><?php echo number_format($passedCount); ?></div>
+                <div class="stat-label">Passed</div>
+            </div>
+            
+            <div class="stat-box">
+                <div class="stat-icon failed">
+                    <i class="fas fa-times-circle"></i>
                 </div>
-                
-                <!-- Performance Summary -->
-                <div style="margin-top: 2rem;">
-                    <h3 style="margin-bottom: 1rem; color: var(--text-primary);">
-                        <i class="fas fa-chart-pie"></i> Performance Summary
-                    </h3>
-                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                        <div style="flex: 1; padding: 1rem; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
-                            <div style="color: #6ee7b7; font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">
-                                <?php echo round(($selected_exam['obtained_marks'] / $selected_exam['questions']) * 100, 1); ?>%
-                            </div>
-                            <div style="color: var(--text-secondary); font-size: 0.9rem;">Accuracy Rate</div>
-                        </div>
-                        <div style="flex: 1; padding: 1rem; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.3);">
-                            <div style="color: var(--accent); font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">
-                                <?php echo $selected_exam['percentage'] >= $selected_exam['passing_marks'] ? 'Passed' : 'Failed'; ?>
-                            </div>
-                            <div style="color: var(--text-secondary); font-size: 0.9rem;">Result Status</div>
-                        </div>
-                    </div>
+                <div class="stat-value"><?php echo number_format($failedCount); ?></div>
+                <div class="stat-label">Failed</div>
+            </div>
+            
+            <div class="stat-box">
+                <div class="stat-icon avg">
+                    <i class="fas fa-percentage"></i>
                 </div>
-                
-                <!-- Question Analysis (Placeholder) -->
-                <div class="question-analysis">
-                    <h3 style="margin-bottom: 1rem; color: var(--text-primary);">
-                        <i class="fas fa-list-ol"></i> Question Analysis
-                    </h3>
-                    <div style="background: rgba(15, 23, 42, 0.3); padding: 1.5rem; border-radius: 10px; border: 1px solid var(--border);">
-                        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                            Detailed question-by-question analysis will be available soon.
-                        </p>
-                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                            <?php 
-                            $correct_questions = floor($selected_exam['obtained_marks'] / ($selected_exam['total_marks'] / $selected_exam['questions']));
-                            $incorrect_questions = $selected_exam['questions'] - $correct_questions;
-                            
-                            for ($i = 1; $i <= $selected_exam['questions']; $i++) {
-                                $status = $i <= $correct_questions ? 'correct' : 'incorrect';
-                                echo '<span class="question-status status-' . $status . '" title="Question ' . $i . ': ' . ucfirst($status) . '"></span>';
-                            }
-                            ?>
-                        </div>
-                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span class="question-status status-correct"></span>
-                                <span style="color: var(--text-secondary); font-size: 0.9rem;">
-                                    Correct: <?php echo $correct_questions; ?>
-                                </span>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span class="question-status status-incorrect"></span>
-                                <span style="color: var(--text-secondary); font-size: 0.9rem;">
-                                    Incorrect: <?php echo $incorrect_questions; ?>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                <div class="stat-value"><?php echo number_format($avgPercentage, 1); ?>%</div>
+                <div class="stat-label">Avg Score</div>
+            </div>
+            
+            <!-- User Stats -->
+            <div class="stat-box">
+                <div class="stat-icon users">
+                    <i class="fas fa-users"></i>
                 </div>
-                
-                <div style="margin-top: 2rem; display: flex; gap: 1rem;">
-                    <a href="results.php" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Back to All Results
+                <div class="stat-value"><?php echo number_format($userStats['total_users']); ?></div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            
+            <div class="stat-box">
+                <div class="stat-icon students">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div class="stat-value"><?php echo number_format($userStats['students_count']); ?></div>
+                <div class="stat-label">Students</div>
+            </div>
+            
+            <div class="stat-box">
+                <div class="stat-icon teachers">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <div class="stat-value"><?php echo number_format($userStats['teachers_count']); ?></div>
+                <div class="stat-label">Teachers</div>
+            </div>
+            
+            <div class="stat-box">
+                <div class="stat-icon">
+                    <i class="fas fa-user-check"></i>
+                </div>
+                <div class="stat-value"><?php echo number_format($userStats['active_users']); ?></div>
+                <div class="stat-label">Active Users</div>
+            </div>
+        </div>
+
+        <!-- Content Sections -->
+        <div class="content-sections">
+            <!-- Recent Exam Results -->
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <i class="fas fa-poll"></i>
+                        Recent Exam Results
+                    </div>
+                    <a href="#" class="view-all" onclick="viewAllResults()">
+                        View All <i class="fas fa-arrow-right"></i>
                     </a>
-                    <button class="btn btn-primary" onclick="window.print()">
-                        <i class="fas fa-print"></i> Print Result
-                    </button>
-                    <button class="btn btn-success" onclick="alert('Certificate will be available soon!')">
-                        <i class="fas fa-award"></i> Download Certificate
-                    </button>
-                </div>
-            </div>
-            <?php else: ?>
-                <div style="background: var(--bg-secondary); padding: 2rem; border-radius: 15px; border: 1px solid var(--border); text-align: center;">
-                    <i class="fas fa-exclamation-circle" style="font-size: 3rem; color: var(--warning); margin-bottom: 1rem;"></i>
-                    <h3>Exam Result Not Found</h3>
-                    <p style="color: var(--text-secondary); margin: 1rem 0;">The requested exam result could not be found.</p>
-                    <a href="results.php" class="btn btn-primary">Back to Results</a>
-                </div>
-            <?php endif; ?>
-            
-        <?php else: ?>
-            <!-- Overall Results View -->
-            <!-- Stats Cards -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-file-alt"></i>
-                    </div>
-                    <div class="stat-number"><?php echo $overall_stats['total_exams']; ?></div>
-                    <div class="stat-label">Total Exams Taken</div>
                 </div>
                 
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div class="stat-number"><?php echo $overall_stats['average_score']; ?>%</div>
-                    <div class="stat-label">Average Score</div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-trophy"></i>
-                    </div>
-                    <div class="stat-number"><?php echo $overall_stats['highest_score']; ?>%</div>
-                    <div class="stat-label">Highest Score</div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <div class="stat-number"><?php echo $overall_stats['passed_exams']; ?></div>
-                    <div class="stat-label">Exams Passed</div>
-                </div>
-            </div>
-            
-            <!-- Results Table -->
-            <div class="results-table-container">
-                <div class="table-header">
-                    <h2><i class="fas fa-history"></i> Exam History</h2>
-                    <div class="table-actions">
-                        <button class="btn btn-secondary" onclick="window.print()">
-                            <i class="fas fa-print"></i> Print All
-                        </button>
-                        <button class="btn btn-secondary" onclick="alert('Export feature coming soon!')">
-                            <i class="fas fa-download"></i> Export
-                        </button>
-                    </div>
-                </div>
-                
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Exam</th>
-                            <th>Date</th>
-                            <th>Score</th>
-                            <th>Status</th>
-                            <th>Performance</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($results as $result): ?>
-                        <tr>
-                            <td>
-                                <div class="exam-title"><?php echo htmlspecialchars($result['exam_title']); ?></div>
-                                <div class="exam-meta">
-                                    <?php echo $result['duration']; ?> • <?php echo $result['questions']; ?> questions
-                                </div>
-                            </td>
-                            <td>
-                                <?php echo date('M d, Y', strtotime($result['exam_date'])); ?>
-                            </td>
-                            <td class="score-cell">
-                                <div class="score-value <?php echo $result['status'] == 'passed' ? 'score-passed' : 'score-failed'; ?>">
-                                    <?php echo $result['obtained_marks']; ?>/<?php echo $result['total_marks']; ?>
-                                </div>
-                                <div style="color: var(--text-secondary); font-size: 0.9rem;">
-                                    <?php echo $result['percentage']; ?>%
-                                </div>
-                            </td>
-                            <td>
-                                <span class="status-badge <?php echo $result['status'] == 'passed' ? 'status-passed' : 'status-failed'; ?>">
-                                    <?php echo ucfirst($result['status']); ?>
-                                </span>
-                            </td>
-                            <td>
-                                <div style="color: var(--text-secondary); font-size: 0.9rem;">
-                                    <?php echo $result['percentage']; ?>%
-                                </div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill <?php 
-                                        echo $result['percentage'] >= 80 ? 'progress-success' : 
-                                            ($result['percentage'] >= 50 ? 'progress-warning' : 'progress-danger');
-                                    ?>" style="width: <?php echo min($result['percentage'], 100); ?>%"></div>
-                                </div>
-                            </td>
-                            <td>
-                                <a href="results.php?exam_id=<?php echo $result['exam_id']; ?>" class="btn btn-secondary" style="padding: 0.25rem 0.75rem;">
-                                    <i class="fas fa-eye"></i> View
-                                </a>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Performance Chart -->
-            <div class="performance-chart">
-                <div class="chart-header">
-                    <h2><i class="fas fa-chart-bar"></i> Performance Trend</h2>
-                    <select style="padding: 0.5rem; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px;">
-                        <option>Last 6 Months</option>
-                        <option>Last Year</option>
-                        <option>All Time</option>
-                    </select>
-                </div>
-                <div class="chart-container">
-                    <div class="chart-placeholder">
-                        <div style="text-align: center;">
-                            <i class="fas fa-chart-line" style="font-size: 3rem; color: var(--accent); margin-bottom: 1rem;"></i>
-                            <p>Performance chart visualization<br>will be available soon</p>
-                        </div>
-                    </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Exam</th>
+                                <th>Score</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($examResults)): ?>
+                                <tr>
+                                    <td colspan="4" style="text-align: center; padding: 30px; color: var(--dark-text-secondary);">
+                                        No exam results found
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($examResults as $result): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars(substr($result['student_name'], 0, 20)); ?></td>
+                                        <td><?php echo htmlspecialchars(substr($result['exam_title'], 0, 20)); ?></td>
+                                        <td><strong><?php echo $result['marks_obtained']; ?>/<?php echo $result['total_marks']; ?></strong></td>
+                                        <td>
+                                            <span class="badge <?php echo strtolower($result['status']) == 'pass' ? 'badge-passed' : 'badge-failed'; ?>">
+                                                <?php echo $result['status']; ?>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            
-            <!-- Additional Information -->
-            <div style="margin-top: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-                <div style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 10px; border: 1px solid var(--border);">
-                    <h3 style="margin-bottom: 1rem; color: var(--text-primary);">
-                        <i class="fas fa-lightbulb"></i> Tips for Improvement
-                    </h3>
-                    <ul style="color: var(--text-secondary); padding-left: 1.5rem;">
-                        <li style="margin-bottom: 0.5rem;">Review questions you answered incorrectly</li>
-                        <li style="margin-bottom: 0.5rem;">Focus on topics with lowest scores</li>
-                        <li style="margin-bottom: 0.5rem;">Take practice exams regularly</li>
-                        <li>Manage your time better during exams</li>
-                    </ul>
+
+            <!-- Recent Users -->
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <i class="fas fa-users"></i>
+                        Recent Users
+                    </div>
+                    <a href="#" class="view-all" onclick="viewAllUsers()">
+                        View All <i class="fas fa-arrow-right"></i>
+                    </a>
                 </div>
                 
-                <div style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 10px; border: 1px solid var(--border);">
-                    <h3 style="margin-bottom: 1rem; color: var(--text-primary);">
-                        <i class="fas fa-calendar-check"></i> Upcoming Exams
-                    </h3>
-                    <div style="color: var(--text-secondary);">
-                        <p style="margin-bottom: 0.5rem;"><strong>Science Advanced:</strong> Dec 10, 2025</p>
-                        <p style="margin-bottom: 0.5rem;"><strong>Mathematics Quiz:</strong> Dec 15, 2025</p>
-                        <p><strong>English Literature:</strong> Dec 20, 2025</p>
-                    </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($users)): ?>
+                                <tr>
+                                    <td colspan="4" style="text-align: center; padding: 30px; color: var(--dark-text-secondary);">
+                                        No users found
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($users as $user): ?>
+                                    <?php 
+                                    // Get initials for avatar
+                                    $initials = '';
+                                    $nameParts = explode(' ', $user['full_name']);
+                                    foreach ($nameParts as $part) {
+                                        $initials .= strtoupper(substr($part, 0, 1));
+                                    }
+                                    $initials = substr($initials, 0, 2);
+                                    ?>
+                                    <tr>
+                                        <td>
+                                            <div class="user-cell">
+                                                <div class="user-avatar"><?php echo $initials; ?></div>
+                                                <div>
+                                                    <div><?php echo htmlspecialchars(substr($user['full_name'], 0, 15)); ?></div>
+                                                    <small style="color: var(--dark-text-secondary); font-size: 0.8rem;">@<?php echo htmlspecialchars($user['username']); ?></small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-<?php echo $user['user_type']; ?>">
+                                                <?php echo ucfirst($user['user_type']); ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge <?php echo $user['is_active'] ? 'badge-active' : 'badge-inactive'; ?>">
+                                                <?php echo $user['is_active'] ? 'Active' : 'Inactive'; ?>
+                                            </span>
+                                        </td>
+                                        <td><?php echo date('M d', strtotime($user['created_at'])); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        <?php endif; ?>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Last updated: <?php echo date('F j, Y H:i:s'); ?> | Total Results: <?php echo number_format($totalResults); ?> | Total Users: <?php echo number_format($userStats['total_users']); ?></p>
+        </div>
     </div>
-    
+
     <script>
-        // Sort table functionality
-        function sortTable(columnIndex) {
-            const table = document.querySelector('table');
-            const tbody = table.querySelector('tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            
-            rows.sort((a, b) => {
-                const aValue = a.cells[columnIndex].textContent.trim();
-                const bValue = b.cells[columnIndex].textContent.trim();
-                
-                // Try to parse as number first
-                const aNum = parseFloat(aValue);
-                const bNum = parseFloat(bValue);
-                
-                if (!isNaN(aNum) && !isNaN(bNum)) {
-                    return aNum - bNum;
-                }
-                
-                // Otherwise sort as string
-                return aValue.localeCompare(bValue);
-            });
-            
-            // Reverse if already sorted
-            if (table.dataset.sortedColumn == columnIndex) {
-                rows.reverse();
-                table.dataset.sortedColumn = -1;
-            } else {
-                table.dataset.sortedColumn = columnIndex;
+        function viewAllResults() {
+            alert('This would show all exam results in a detailed view.\n\nIn a real application, this could link to a dedicated results page.');
+        }
+
+        function viewAllUsers() {
+            alert('This would show all users in a detailed view.\n\nIn a real application, this could link to a dedicated users page.');
+        }
+
+        // Auto-refresh every 60 seconds
+        setInterval(() => {
+            const shouldRefresh = confirm('Refresh data?');
+            if (shouldRefresh) {
+                window.location.reload();
             }
-            
-            // Reappend rows
-            rows.forEach(row => tbody.appendChild(row));
-        }
-        
-        // Add click handlers to table headers
-        document.querySelectorAll('th').forEach((th, index) => {
-            th.style.cursor = 'pointer';
-            th.addEventListener('click', () => sortTable(index));
-        });
-        
-        // Filter functionality
-        function filterTable(status) {
-            const rows = document.querySelectorAll('tbody tr');
-            rows.forEach(row => {
-                if (status === 'all') {
-                    row.style.display = '';
-                } else {
-                    const rowStatus = row.querySelector('.status-badge').textContent.toLowerCase();
-                    row.style.display = rowStatus === status ? '' : 'none';
-                }
-            });
-        }
+        }, 60000);
     </script>
 </body>
 </html>
