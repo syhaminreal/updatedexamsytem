@@ -3,14 +3,6 @@
 session_start();
 require '../db_connection.php';
 
-// Check if questions table has options JSON column or individual columns
-try {
-    $pdo->query("SELECT options FROM questions LIMIT 1");
-    $useJsonOptions = true;
-} catch (PDOException $e) {
-    $useJsonOptions = false;
-}
-
 $exam_id = (int)$_GET['exam_id'];
 
 // Fetch exam details
@@ -67,20 +59,25 @@ $questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <td><?php echo htmlspecialchars(substr($row['question_text'], 0, 100)); ?>...</td>
                             <td>
                                 <?php 
-                                if ($useJsonOptions) {
-                                    $options = json_decode($row['options'], true);
-                                    if (is_array($options)) {
-                                        echo "A: " . htmlspecialchars($options['a'] ?? '') . "<br>";
-                                        echo "B: " . htmlspecialchars($options['b'] ?? '') . "<br>";
-                                        echo "C: " . htmlspecialchars($options['c'] ?? '') . "<br>";
-                                        echo "D: " . htmlspecialchars($options['d'] ?? '');
+                                // Prefer individual columns, fallback to JSON
+                                $opt_a = $row['option_a'] ?? '';
+                                $opt_b = $row['option_b'] ?? '';
+                                $opt_c = $row['option_c'] ?? '';
+                                $opt_d = $row['option_d'] ?? '';
+                                
+                                if ((empty($opt_a) || empty($opt_b)) && !empty($row['options'])) {
+                                    $opts = json_decode($row['options'], true);
+                                    if (is_array($opts)) {
+                                        $opt_a = $opt_a ?: ($opts['a'] ?? $opts['A'] ?? '');
+                                        $opt_b = $opt_b ?: ($opts['b'] ?? $opts['B'] ?? '');
+                                        $opt_c = $opt_c ?: ($opts['c'] ?? $opts['C'] ?? '');
+                                        $opt_d = $opt_d ?: ($opts['d'] ?? $opts['D'] ?? '');
                                     }
-                                } else {
-                                    echo "A: " . htmlspecialchars($row['option_a'] ?? '') . "<br>";
-                                    echo "B: " . htmlspecialchars($row['option_b'] ?? '') . "<br>";
-                                    echo "C: " . htmlspecialchars($row['option_c'] ?? '') . "<br>";
-                                    echo "D: " . htmlspecialchars($row['option_d'] ?? '');
                                 }
+                                echo "A: " . htmlspecialchars($opt_a) . "<br>";
+                                echo "B: " . htmlspecialchars($opt_b) . "<br>";
+                                echo "C: " . htmlspecialchars($opt_c) . "<br>";
+                                echo "D: " . htmlspecialchars($opt_d);
                                 ?>
                             </td>
                             <td><?php echo strtoupper(htmlspecialchars($row['correct_answer'])); ?></td>

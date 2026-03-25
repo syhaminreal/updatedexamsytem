@@ -27,6 +27,21 @@ $stmt = $pdo->prepare("SELECT * FROM questions WHERE exam_id = ? ORDER BY questi
 $stmt->execute([$exam_id]);
 $questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Ensure individual option columns are populated (fallback from JSON options column)
+foreach ($questions as &$q) {
+    if ((empty($q['option_a']) || empty($q['option_b'])) && !empty($q['options'])) {
+        $opts = json_decode($q['options'], true);
+        if (is_array($opts)) {
+            // Support both lowercase keys ('a','b','c','d') and uppercase ('A','B','C','D')
+            $q['option_a'] = $q['option_a'] ?: ($opts['a'] ?? $opts['A'] ?? '');
+            $q['option_b'] = $q['option_b'] ?: ($opts['b'] ?? $opts['B'] ?? '');
+            $q['option_c'] = $q['option_c'] ?: ($opts['c'] ?? $opts['C'] ?? '');
+            $q['option_d'] = $q['option_d'] ?: ($opts['d'] ?? $opts['D'] ?? '');
+        }
+    }
+}
+unset($q); // break reference
+
 // Check if time is up
 $current_time = time();
 $start_time = $_SESSION['start_time'];
