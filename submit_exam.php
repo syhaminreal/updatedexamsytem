@@ -2,11 +2,7 @@
 session_start();
 require_once 'db_connection.php';
 
-/*
-|---------------------------------------------------------
-| Check exam session
-|---------------------------------------------------------
-*/
+
 if (!isset($_SESSION['attempt_id']) || !isset($_SESSION['exam_id'])) {
     header('Location: index.php');
     exit();
@@ -16,11 +12,6 @@ $attempt_id   = $_SESSION['attempt_id'];
 $exam_id      = $_SESSION['exam_id'];
 $student_name = $_SESSION['student_name'] ?? 'Student';
 
-/*
-|---------------------------------------------------------
-| Get exam details
-|---------------------------------------------------------
-*/
 $stmt = $pdo->prepare("SELECT * FROM exams WHERE exam_id = ?");
 $stmt->execute([$exam_id]);
 $exam = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -31,11 +22,7 @@ if (!$exam) {
     exit();
 }
 
-/*
-|---------------------------------------------------------
-| Get questions
-|---------------------------------------------------------
-*/
+
 $stmt = $pdo->prepare("SELECT * FROM questions WHERE exam_id = ?");
 $stmt->execute([$exam_id]);
 $questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -54,11 +41,7 @@ foreach ($questions as &$q) {
 }
 unset($q);
 
-/*
-|---------------------------------------------------------
-| Calculate result
-|---------------------------------------------------------
-*/
+
 $total_questions     = count($questions);
 $attempted_questions = 0;
 $correct_answers     = 0;
@@ -117,11 +100,7 @@ foreach ($questions as $question) {
     }
 }
 
-/*
-|---------------------------------------------------------
-| Calculate grade and status
-|---------------------------------------------------------
-*/
+
 $percentage = ($total_marks > 0) ? round(($marks_obtained / $total_marks) * 100, 2) : 0;
 $unattempted = $total_questions - $attempted_questions;
 
@@ -142,11 +121,7 @@ if ($percentage >= 90) {
 // Pass/fail status
 $status = ($marks_obtained >= $exam['passing_marks']) ? 'PASS' : 'FAIL';
 
-/*
-|---------------------------------------------------------
-| Save final result to database (WITHOUT wrong_answers if column doesn't exist)
-|---------------------------------------------------------
-*/
+
 try {
     // First, let's check if the table has wrong_answers column
     $check_stmt = $pdo->prepare("SHOW COLUMNS FROM exam_results LIKE 'wrong_answers'");
@@ -283,20 +258,11 @@ try {
 // Update exam attempt as completed
 $pdo->prepare("UPDATE exam_attempts SET completed_at = NOW() WHERE attempt_id = ?")->execute([$attempt_id]);
 
-/*
-|---------------------------------------------------------
-| Cleanup session
-|---------------------------------------------------------
-*/
+
 unset($_SESSION['attempt_id']);
 unset($_SESSION['exam_id']);
 unset($_SESSION['student_name']);
 
-/*
-|---------------------------------------------------------
-| Modern Results Display
-|---------------------------------------------------------
-*/
 ?>
 <!DOCTYPE html>
 <html lang="en">
