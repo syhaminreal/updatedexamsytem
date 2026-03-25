@@ -540,7 +540,7 @@ $percentile_algorithms = calculatePercentileBoundaries($exam_stats);
         <div class="header-card">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <a href="dashboard.php" class="home-icon" title="Go to Home">
+                    <a href="home.php" class="home-icon" title="Go to Home">
                         <i class="fas fa-home"></i>
                     </a>
                     <h1><i class="fas fa-trophy trophy-animation me-3"></i>Exam Leaderboard</h1>
