@@ -1,9 +1,20 @@
 <?php
+session_start();
 require_once './db_connection.php'; // adjust path if needed
 
 try {
-    $stmt = $pdo->prepare("SELECT * FROM exams WHERE exam_status = :status ORDER BY created_at DESC");
-    $stmt->execute(['status' => 'active']);
+    // Use single JOIN query instead of N+1 queries
+    $stmt = $pdo->prepare("
+        SELECT 
+            e.*, 
+            COUNT(q.question_id) as question_count 
+        FROM exams e 
+        LEFT JOIN questions q ON e.exam_id = q.exam_id 
+        WHERE e.exam_status = 'active' 
+        GROUP BY e.exam_id
+        ORDER BY e.created_at DESC
+    ");
+    $stmt->execute();
     $exams = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     die("Error fetching exams: " . $e->getMessage());
@@ -90,25 +101,20 @@ try {
                     </div>
                 </div>
             <?php else: ?>
-                <?php foreach ($exams as $exam): 
-                    // Count questions for this exam
-                    $question_stmt = $pdo->prepare("SELECT COUNT(*) as count FROM questions WHERE exam_id = ?");
-                    $question_stmt->execute([$exam['exam_id']]);
-                    $question_count = $question_stmt->fetch(PDO::FETCH_ASSOC)['count'];
-                ?>
-                    <div class="col-md-4">
-                        <div class="exam-card">
-                            <div class="exam-header">
-                                <h4 class="mb-0"><?php echo htmlspecialchars($exam['exam_title']); ?></h4>
-                            </div>
-                            <div class="card-body">
-                                <p class="card-text"><?php echo htmlspecialchars($exam['exam_description']); ?></p>
-                                
-                                <div class="exam-details mb-3">
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <span>📋 Questions:</span>
-                                        <strong><?php echo $question_count; ?></strong>
-                                    </div>
+                <?php foreach ($exams as $exam): ?>
+                        <div class="col-md-4">
+                            <div class="exam-card">
+                                <div class="exam-header">
+                                    <h4 class="mb-0"><?php echo htmlspecialchars($exam['exam_title']); ?></h4>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text"><?php echo htmlspecialchars($exam['exam_description']); ?></p>
+                                    
+                                    <div class="exam-details mb-3">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>📋 Questions:</span>
+                                            <strong><?php echo $exam['question_count']; ?></strong>
+                                        </div>
                                     <div class="d-flex justify-content-between mb-2">
                                         <span>⏱️ Duration:</span>
                                         <strong><?php echo $exam['exam_duration']; ?> minutes</strong>

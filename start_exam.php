@@ -1,5 +1,13 @@
 <?php
+session_start();
 require_once 'db_connection.php';
+
+// Check if user is logged in (optional - can be removed for public exams)
+// Uncomment if exams should require login:
+// if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
+//     header('Location: login.php');
+//     exit();
+// }
 
 $exam_id = isset($_GET['exam_id']) ? intval($_GET['exam_id']) : 0;
 
@@ -32,8 +40,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $student_email = trim($_POST['student_email']);
     $student_roll = trim($_POST['student_roll']);
     
+    // Input validation
     if (empty($student_name)) {
         $error = "Student name is required!";
+    } elseif (strlen($student_name) < 2) {
+        $error = "Student name must be at least 2 characters!";
+    } elseif (!empty($student_email) && !filter_var($student_email, FILTER_VALIDATE_EMAIL)) {
+        $error = "Please enter a valid email address!";
     } else {
         // Create exam attempt
         $stmt = $pdo->prepare("INSERT INTO exam_attempts (exam_id, student_name, student_email, student_roll) VALUES (?, ?, ?, ?)");

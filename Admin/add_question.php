@@ -1,22 +1,53 @@
 <?php
+session_start();
 require_once 'db_connection.php';
 
-$exam_id = $_GET['exam_id'];
+// Check if user is logged in and is admin
+if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
+    header('Location: ../login.php');
+    exit();
+}
+
+// Check if user has admin/teacher role
+if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], ['admin', 'teacher'])) {
+    die("Unauthorized access!");
+}
+
+// Sanitize input
+function sanitize($data) {
+    return htmlspecialchars(strip_tags(trim($data)));
+}
+
+$exam_id = isset($_GET['exam_id']) ? intval($_GET['exam_id']) : 0;
+
+if (!$exam_id) {
+    header('Location: manage_exams.php');
+    exit();
+}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $question_text = $_POST['question_text'];
-    $option_a = $_POST['option_a'];
-    $option_b = $_POST['option_b'];
-    $option_c = $_POST['option_c'];
-    $option_d = $_POST['option_d'];
-    $correct_answer = $_POST['correct_answer'];
-    $marks = $_POST['marks'];
+    $question_text = sanitize($_POST['question_text']);
+    $option_a = sanitize($_POST['option_a']);
+    $option_b = sanitize($_POST['option_b']);
+    $option_c = sanitize($_POST['option_c']);
+    $option_d = sanitize($_POST['option_d']);
+    $correct_answer = sanitize($_POST['correct_answer']);
+    $marks = intval($_POST['marks']);
     
-    $stmt = $pdo->prepare("INSERT INTO question_table (exam_id, question_text, option_a, option_b, option_c, option_d, correct_answer, marks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-    
-    if ($stmt->execute([$exam_id, $question_text, $option_a, $option_b, $option_c, $option_d, $correct_answer, $marks])) {
-        header("Location: manage_questions.php?exam_id=$exam_id");
-        exit();
+    // Validate required fields
+    if (empty($question_text) || empty($option_a) || empty($option_b) || empty($option_c) || empty($option_d)) {
+        $error = "All fields are required!";
+    } elseif (!in_array($correct_answer, ['A', 'B', 'C', 'D'])) {
+        $error = "Please select a valid correct answer!";
+    } elseif ($marks < 1 || $marks > 100) {
+        $error = "Marks must be between 1 and 100!";
+    } else {
+        $stmt = $pdo->prepare("INSERT INTO questions (exam_id, question_text, option_a, option_b, option_c, option_d, correct_answer, marks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        
+        if ($stmt->execute([$exam_id, $question_text, $option_a, $option_b, $option_c, $option_d, $correct_answer, $marks])) {
+            header("Location: manage_questions.php?exam_id=$exam_id");
+            exit();
+        }
     }
 }
 ?>

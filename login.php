@@ -84,7 +84,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // ✅ Remember-me cookie
             if ($remember) {
                 $token = bin2hex(random_bytes(32));
-                setcookie('user_remember', $token, time() + (86400*30), "/");
+                
+                // Store token in database
+                $token_stmt = $pdo->prepare("UPDATE users SET remember_token = ?, remember_expires = DATE_ADD(NOW(), INTERVAL 30 DAY) WHERE user_id = ?");
+                $token_stmt->execute([$token, $user['user_id']]);
+                
+                // Set secure cookie
+                setcookie('user_remember', $token, time() + (86400 * 30), "/", "", true, true);
             }
 
             // ✅ Redirect by role

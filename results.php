@@ -22,59 +22,25 @@ $overall_stats = [
     'passed_exams' => 0
 ];
 
-// Sample data for demonstration
-$sample_results = [
-    [
-        'exam_id' => 1,
-        'exam_title' => 'Mathematics Final Exam',
-        'total_marks' => 100,
-        'obtained_marks' => 85,
-        'percentage' => 85,
-        'passing_marks' => 40,
-        'exam_date' => '2025-12-01',
-        'status' => 'passed',
-        'duration' => '60 min',
-        'questions' => 40
-    ],
-    [
-        'exam_id' => 2,
-        'exam_title' => 'Science Quiz - Physics',
-        'total_marks' => 50,
-        'obtained_marks' => 42,
-        'percentage' => 84,
-        'passing_marks' => 25,
-        'exam_date' => '2025-11-28',
-        'status' => 'passed',
-        'duration' => '30 min',
-        'questions' => 20
-    ],
-    [
-        'exam_id' => 3,
-        'exam_title' => 'English Grammar Test',
-        'total_marks' => 75,
-        'obtained_marks' => 60,
-        'percentage' => 80,
-        'passing_marks' => 30,
-        'exam_date' => '2025-11-25',
-        'status' => 'passed',
-        'duration' => '45 min',
-        'questions' => 35
-    ],
-    [
-        'exam_id' => 4,
-        'exam_title' => 'History Midterm',
-        'total_marks' => 100,
-        'obtained_marks' => 35,
-        'percentage' => 35,
-        'passing_marks' => 40,
-        'exam_date' => '2025-11-20',
-        'status' => 'failed',
-        'duration' => '60 min',
-        'questions' => 50
-    ],
-];
-
-$results = $sample_results;
+// Fetch user's exam results from database
+try {
+    $stmt = $pdo->prepare("
+        SELECT 
+            er.*, 
+            e.exam_title,
+            e.exam_duration,
+            (SELECT COUNT(*) FROM questions WHERE exam_id = er.exam_id) as total_questions
+        FROM exam_results er 
+        JOIN exams e ON er.exam_id = e.exam_id 
+        WHERE er.student_name = ?
+        ORDER BY er.completed_at DESC
+    ");
+    $stmt->execute([$_SESSION['full_name']]);
+    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    // If table doesn't exist or query fails, show empty results
+    $results = [];
+}
 
 // Calculate overall stats
 if (!empty($results)) {
@@ -88,7 +54,7 @@ if (!empty($results)) {
         if ($result['percentage'] > $highest) {
             $highest = $result['percentage'];
         }
-        if ($result['status'] == 'passed') {
+        if ($result['status'] == 'PASS') {
             $passed++;
         }
     }
@@ -633,20 +599,20 @@ $view_exam_id = isset($_GET['exam_id']) ? intval($_GET['exam_id']) : 0;
                     <div>
                         <h2 style="margin-bottom: 0.5rem;"><?php echo htmlspecialchars($selected_exam['exam_title']); ?></h2>
                         <p style="color: var(--text-secondary);">
-                            Exam Date: <?php echo date('F d, Y', strtotime($selected_exam['exam_date'])); ?>
+                            Completed: <?php echo date('F d, Y', strtotime($selected_exam['completed_at'])); ?>
                         </p>
                     </div>
                     <div>
-                        <span class="status-badge <?php echo $selected_exam['status'] == 'passed' ? 'status-passed' : 'status-failed'; ?>">
-                            <?php echo ucfirst($selected_exam['status']); ?>
+                        <span class="status-badge <?php echo $selected_exam['status'] == 'PASS' ? 'status-passed' : 'status-failed'; ?>">
+                            <?php echo ucfirst(strtolower($selected_exam['status'])); ?>
                         </span>
                     </div>
                 </div>
                 
                 <div class="detail-stats">
                     <div class="detail-stat">
-                        <div class="value <?php echo $selected_exam['status'] == 'passed' ? 'score-passed' : 'score-failed'; ?>">
-                            <?php echo $selected_exam['obtained_marks']; ?>/<?php echo $selected_exam['total_marks']; ?>
+                        <div class="value <?php echo $selected_exam['status'] == 'PASS' ? 'score-passed' : 'score-failed'; ?>">
+                            <?php echo $selected_exam['marks_obtained']; ?>/<?php echo $selected_exam['total_marks']; ?>
                         </div>
                         <div class="label">Marks Obtained</div>
                     </div>
@@ -824,19 +790,19 @@ $view_exam_id = isset($_GET['exam_id']) ? intval($_GET['exam_id']) : 0;
                                 </div>
                             </td>
                             <td>
-                                <?php echo date('M d, Y', strtotime($result['exam_date'])); ?>
+                                <?php echo date('M d, Y', strtotime($result['completed_at'])); ?>
                             </td>
                             <td class="score-cell">
-                                <div class="score-value <?php echo $result['status'] == 'passed' ? 'score-passed' : 'score-failed'; ?>">
-                                    <?php echo $result['obtained_marks']; ?>/<?php echo $result['total_marks']; ?>
+                                <div class="score-value <?php echo $result['status'] == 'PASS' ? 'score-passed' : 'score-failed'; ?>">
+                                    <?php echo $result['marks_obtained']; ?>/<?php echo $result['total_marks']; ?>
                                 </div>
                                 <div style="color: var(--text-secondary); font-size: 0.9rem;">
                                     <?php echo $result['percentage']; ?>%
                                 </div>
                             </td>
                             <td>
-                                <span class="status-badge <?php echo $result['status'] == 'passed' ? 'status-passed' : 'status-failed'; ?>">
-                                    <?php echo ucfirst($result['status']); ?>
+                                <span class="status-badge <?php echo $result['status'] == 'PASS' ? 'status-passed' : 'status-failed'; ?>">
+                                    <?php echo ucfirst(strtolower($result['status'])); ?>
                                 </span>
                             </td>
                             <td>
