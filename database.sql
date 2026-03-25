@@ -67,6 +67,7 @@ CREATE TABLE questions (
     option_b TEXT NOT NULL,
     option_c TEXT NOT NULL,
     option_d TEXT NOT NULL,
+    options JSON,
     correct_answer ENUM('A', 'B', 'C', 'D') NOT NULL,
     marks INT NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

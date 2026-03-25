@@ -10,7 +10,7 @@ try {
             COUNT(q.question_id) as question_count 
         FROM exams e 
         LEFT JOIN questions q ON e.exam_id = q.exam_id 
-        WHERE e.exam_status = 'active' 
+        WHERE e.exam_status = 'active' AND (e.is_deleted = 0 OR e.is_deleted IS NULL)
         GROUP BY e.exam_id
         ORDER BY e.created_at DESC
     ");

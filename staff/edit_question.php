@@ -1,9 +1,15 @@
 <?php
-// admin/edit_question.php
+// staff/edit_question.php
 session_start();
 include '../db_connection.php';
 
-// $pdo should be defined in db_connection.php
+// Check if questions table has options JSON column or individual columns
+try {
+    $pdo->query("SELECT options FROM questions LIMIT 1");
+    $useJsonOptions = true;
+} catch (PDOException $e) {
+    $useJsonOptions = false;
+}
 
 $question_id = (int)$_GET['id'];
 $error = '';
@@ -24,8 +30,19 @@ if (!$question) {
     exit();
 }
 
-// Decode options
-$options = json_decode($question['options'], true);
+// Get options based on column type
+if ($useJsonOptions) {
+    $options = json_decode($question['options'], true);
+    $option_a = $options['a'] ?? '';
+    $option_b = $options['b'] ?? '';
+    $option_c = $options['c'] ?? '';
+    $option_d = $options['d'] ?? '';
+} else {
+    $option_a = $question['option_a'] ?? '';
+    $option_b = $question['option_b'] ?? '';
+    $option_c = $question['option_c'] ?? '';
+    $option_d = $question['option_d'] ?? '';
+}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $question_text = trim($_POST['question_text']);
@@ -33,33 +50,42 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $option_b = trim($_POST['option_b']);
     $option_c = trim($_POST['option_c']);
     $option_d = trim($_POST['option_d']);
-    $correct_answer = $_POST['correct_answer'];
+    $correct_answer = strtolower($_POST['correct_answer']);
     $marks = (int)$_POST['marks'];
     
     // Validation
     if (empty($question_text) || empty($option_a) || empty($option_b)) {
         $error = "Question text and at least two options are required!";
     } else {
-        // Prepare options array
-        $updated_options = [
-            'a' => $option_a,
-            'b' => $option_b,
-            'c' => $option_c,
-            'd' => $option_d
-        ];
-        $options_json = json_encode($updated_options);
-        
-        $stmt = $pdo->prepare("
-            UPDATE questions 
-            SET question_text = ?, options = ?, correct_answer = ?, marks = ? 
-            WHERE question_id = ?
-        ");
-        
-        if ($stmt->execute([$question_text, $options_json, $correct_answer, $marks, $question_id])) {
+        try {
+            if ($useJsonOptions) {
+                $updated_options = [
+                    'a' => $option_a,
+                    'b' => $option_b,
+                    'c' => $option_c,
+                    'd' => $option_d
+                ];
+                $options_json = json_encode($updated_options);
+                
+                $stmt = $pdo->prepare("
+                    UPDATE questions 
+                    SET question_text = ?, options = ?, correct_answer = ?, marks = ? 
+                    WHERE question_id = ?
+                ");
+                $stmt->execute([$question_text, $options_json, $correct_answer, $marks, $question_id]);
+            } else {
+                $stmt = $pdo->prepare("
+                    UPDATE questions 
+                    SET question_text = ?, option_a = ?, option_b = ?, option_c = ?, option_d = ?, correct_answer = ?, marks = ? 
+                    WHERE question_id = ?
+                ");
+                $stmt->execute([$question_text, $option_a, $option_b, $option_c, $option_d, $correct_answer, $marks, $question_id]);
+            }
+            
             $success = "Question updated successfully!";
             header("refresh:2;url=manage_questions.php?exam_id=" . $question['exam_id']);
-        } else {
-            $error = "Error updating question!";
+        } catch (PDOException $e) {
+            $error = "Error updating question: " . $e->getMessage();
         }
     }
 }
@@ -98,22 +124,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <div class="form-row">
                 <div class="form-group">
                     <label for="option_a">Option A *</label>
-                    <input type="text" id="option_a" name="option_a" value="<?php echo htmlspecialchars($options['a'] ?? ''); ?>" required>
+                    <input type="text" id="option_a" name="option_a" value="<?php echo htmlspecialchars($option_a); ?>" required>
                 </div>
                 
                 <div class="form-group">
                     <label for="option_b">Option B *</label>
-                    <input type="text" id="option_b" name="option_b" value="<?php echo htmlspecialchars($options['b'] ?? ''); ?>" required>
+                    <input type="text" id="option_b" name="option_b" value="<?php echo htmlspecialchars($option_b); ?>" required>
                 </div>
                 
                 <div class="form-group">
                     <label for="option_c">Option C</label>
-                    <input type="text" id="option_c" name="option_c" value="<?php echo htmlspecialchars($options['c'] ?? ''); ?>">
+                    <input type="text" id="option_c" name="option_c" value="<?php echo htmlspecialchars($option_c); ?>">
                 </div>
                 
                 <div class="form-group">
                     <label for="option_d">Option D</label>
-                    <input type="text" id="option_d" name="option_d" value="<?php echo htmlspecialchars($options['d'] ?? ''); ?>">
+                    <input type="text" id="option_d" name="option_d" value="<?php echo htmlspecialchars($option_d); ?>">
                 </div>
             </div>
             

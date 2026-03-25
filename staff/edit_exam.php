@@ -1,7 +1,15 @@
 <?php
-// admin/edit_exam.php
+// staff/edit_exam.php
 session_start();
 include '../db_connection.php';
+
+// Check if is_deleted column exists
+try {
+    $pdo->query("SELECT is_deleted FROM exams LIMIT 1");
+    $useSoftDelete = true;
+} catch (PDOException $e) {
+    $useSoftDelete = false;
+}
 
 // // Authentication check
 // if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
@@ -14,7 +22,11 @@ $error = '';
 $success = '';
 
 // Fetch exam data using PDO
-$stmt = $pdo->prepare("SELECT * FROM exams WHERE exam_id = ? AND is_deleted = 0");
+if ($useSoftDelete) {
+    $stmt = $pdo->prepare("SELECT * FROM exams WHERE exam_id = ? AND is_deleted = 0");
+} else {
+    $stmt = $pdo->prepare("SELECT * FROM exams WHERE exam_id = ?");
+}
 $stmt->execute([$id]);
 $exam = $stmt->fetch(PDO::FETCH_ASSOC);
 

@@ -1,9 +1,17 @@
 <?php
-// admin/add_question.php
+// staff/add_question.php
 session_start();
 include '../db_connection.php';
 
-// Authentication check
+// Check if questions table has options JSON column or individual columns
+try {
+    $pdo->query("SELECT options FROM questions LIMIT 1");
+    $useJsonOptions = true;
+} catch (PDOException $e) {
+    $useJsonOptions = false;
+}
+
+// Authentication check (optional - enable if needed)
 // if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
 //     header("Location: login.php");
 //     exit();
@@ -29,30 +37,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $option_b = trim($_POST['option_b']);
     $option_c = trim($_POST['option_c']);
     $option_d = trim($_POST['option_d']);
-    $correct_answer = $_POST['correct_answer'];
+    $correct_answer = strtolower($_POST['correct_answer']);
     $marks = (int)$_POST['marks'];
     
     // Validation
     if (empty($question_text) || empty($option_a) || empty($option_b)) {
         $error = "Question text and at least two options are required!";
     } else {
-        // Prepare options array
-        $options = [
-            'a' => $option_a,
-            'b' => $option_b,
-            'c' => $option_c,
-            'd' => $option_d
-        ];
-        $options_json = json_encode($options);
-        
-        // Insert question using PDO
-        $stmt = $pdo->prepare("INSERT INTO questions (exam_id, question_text, options, correct_answer, marks) VALUES (?, ?, ?, ?, ?)");
-        
-        if ($stmt->execute([$exam_id, $question_text, $options_json, $correct_answer, $marks])) {
+        try {
+            if ($useJsonOptions) {
+                // Use JSON options column
+                $options = [
+                    'a' => $option_a,
+                    'b' => $option_b,
+                    'c' => $option_c,
+                    'd' => $option_d
+                ];
+                $options_json = json_encode($options);
+                
+                $stmt = $pdo->prepare("INSERT INTO questions (exam_id, question_text, options, correct_answer, marks) VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([$exam_id, $question_text, $options_json, $correct_answer, $marks]);
+            } else {
+                // Use individual option columns
+                $stmt = $pdo->prepare("INSERT INTO questions (exam_id, question_text, option_a, option_b, option_c, option_d, correct_answer, marks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$exam_id, $question_text, $option_a, $option_b, $option_c, $option_d, $correct_answer, $marks]);
+            }
+            
             $success = "Question added successfully!";
             header("refresh:2;url=manage_questions.php?exam_id=" . $exam_id);
-        } else {
-            $error = "Error adding question!";
+        } catch (PDOException $e) {
+            $error = "Error adding question: " . $e->getMessage();
         }
     }
 }
