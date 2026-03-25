@@ -29,6 +29,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Online Exam System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -77,12 +78,36 @@ try {
             padding: 20px;
             margin-bottom: 30px;
         }
+        
+        .home-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        
+        .home-icon:hover {
+            background: rgba(255,255,255,0.25);
+            transform: scale(1.1);
+            color: white;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <!-- Hero Section -->
         <div class="hero-section">
+            <a href="staff/index.php" class="home-icon" title="Go to Dashboard">
+                <i class="fas fa-home"></i>
+            </a>
             <h1 class="display-4 mb-3">📝 Online Exam System</h1>
             <p class="lead mb-4">Take exams instantly without registration. Get results immediately!</p>
             <div class="exam-count">
@@ -144,7 +169,12 @@ try {
 
         <!-- Footer -->
         <footer class="text-center text-white mt-5 pt-4">
-            <p>&copy; <?php echo date('Y'); ?> Online Exam System. All rights reserved.</p>
+            <p>
+                <a href="staff/index.php" class="text-white text-decoration-none">
+                    <i class="fas fa-home me-1"></i> Dashboard
+                </a> 
+                | &copy; <?php echo date('Y'); ?> Online Exam System. All rights reserved.
+            </p>
             <p class="small">No registration required. Take exams directly and get instant results.</p>
         </footer>
     </div>

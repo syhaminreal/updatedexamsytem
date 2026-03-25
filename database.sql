@@ -10,6 +10,7 @@ DROP TABLE IF EXISTS exam_attempts;
 DROP TABLE IF EXISTS questions;
 DROP TABLE IF EXISTS exams;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS admin_users;
 
 -- =====================================================
 -- Users Table
@@ -49,6 +50,7 @@ CREATE TABLE exams (
     passing_marks INT NOT NULL DEFAULT 40,
     exam_status ENUM('active', 'inactive', 'draft') DEFAULT 'active',
     created_by INT DEFAULT NULL,
+    is_deleted TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
@@ -139,6 +141,22 @@ CREATE TABLE exam_results (
 );
 
 -- =====================================================
+-- Admin Users Table
+-- =====================================================
+CREATE TABLE admin_users (
+    admin_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    role VARCHAR(50) DEFAULT 'admin',
+    is_active TINYINT(1) DEFAULT 1,
+    last_login DATETIME DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- =====================================================
 -- Sample Data (Optional - for testing)
 -- =====================================================
 
@@ -147,6 +165,10 @@ INSERT INTO users (username, email, password_hash, full_name, user_type, phone) 
 ('admin', 'admin@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'System Administrator', 'admin', '1234567890'),
 ('teacher', 'teacher@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'John Teacher', 'teacher', '9876543210'),
 ('student', 'student@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Jane Student', 'student', '5551234567');
+
+-- Insert sample admin users (password: admin123)
+INSERT INTO admin_users (username, email, password_hash, full_name, role) VALUES
+('admin', 'admin@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'System Administrator', 'admin');
 
 -- Insert sample exam
 INSERT INTO exams (exam_title, exam_description, exam_duration, total_marks, passing_marks, exam_status, created_by) VALUES

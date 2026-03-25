@@ -143,17 +143,24 @@ $percentile_algorithms = calculatePercentileBoundaries($exam_stats);
             --gold: #FFD700;
             --silver: #C0C0C0;
             --bronze: #CD7F32;
-            --primary: #667eea;
-            --success: #28a745;
-            --info: #17a2b8;
-            --warning: #ffc107;
-            --danger: #dc3545;
+            --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #0ea5e9;
+            --dark-bg: #0f172a;
+            --dark-card: #1e293b;
+            --dark-border: #334155;
+            --dark-text: #cbd5e1;
+            --dark-text-light: #94a3b8;
         }
         
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
+            background: var(--dark-bg);
+            color: var(--dark-text);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
         }
         
         .leaderboard-container {
@@ -163,12 +170,40 @@ $percentile_algorithms = calculatePercentileBoundaries($exam_stats);
         }
         
         .header-card {
-            background: linear-gradient(135deg, var(--primary) 0%, #764ba2 100%);
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
             color: white;
-            border-radius: 20px;
+            border-radius: 12px;
             padding: 30px;
             margin-bottom: 30px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+        
+        .header-card h1 {
+            color: white;
+        }
+        
+        .header-card .lead {
+            color: var(--dark-text-light);
+        }
+        
+        .home-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 50%;
+            color: var(--primary);
+            font-size: 24px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        
+        .home-icon:hover {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.1);
         }
         
         .stats-grid {
@@ -179,60 +214,74 @@ $percentile_algorithms = calculatePercentileBoundaries($exam_stats);
         }
         
         .stat-card {
-            background: white;
-            border-radius: 15px;
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 12px;
             padding: 20px;
             text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-            transition: transform 0.3s;
-            border-top: 4px solid var(--primary);
+            transition: transform 0.3s, box-shadow 0.3s;
         }
         
         .stat-card:hover {
             transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
         
         .stat-card.gold {
-            border-top-color: var(--gold);
+            border-top: 3px solid var(--gold);
         }
         
         .stat-card.silver {
-            border-top-color: var(--silver);
+            border-top: 3px solid var(--silver);
         }
         
         .stat-card.bronze {
-            border-top-color: var(--bronze);
+            border-top: 3px solid var(--bronze);
         }
         
         .stat-icon {
             font-size: 2.5em;
             margin-bottom: 15px;
+            color: var(--primary);
+        }
+        
+        .stat-card.gold .stat-icon {
+            color: var(--gold);
         }
         
         .stat-value {
             font-size: 2em;
             font-weight: bold;
-            color: #333;
+            color: white;
         }
         
         .stat-label {
-            color: #666;
+            color: var(--dark-text-light);
             font-size: 0.9em;
             margin-top: 5px;
         }
         
         .leaderboard-table {
-            background: white;
-            border-radius: 15px;
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             margin-bottom: 30px;
         }
         
         .table-header {
-            background: linear-gradient(135deg, var(--primary) 0%, #764ba2 100%);
+            background: rgba(59, 130, 246, 0.1);
+            border-bottom: 1px solid var(--dark-border);
             color: white;
             padding: 20px;
+        }
+        
+        .table-header h4 {
+            color: white;
+        }
+        
+        .table-header p {
+            color: var(--dark-text-light);
         }
         
         .table-row {
@@ -240,18 +289,18 @@ $percentile_algorithms = calculatePercentileBoundaries($exam_stats);
             grid-template-columns: 80px 1fr 100px 100px 100px 100px 100px 150px;
             align-items: center;
             padding: 15px 20px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--dark-border);
             transition: background 0.3s;
         }
         
         .table-row:hover {
-            background: #f8f9fa;
+            background: rgba(59, 130, 246, 0.05);
         }
         
         .table-row.header {
-            background: #f8f9fa;
+            background: rgba(59, 130, 246, 0.05);
             font-weight: bold;
-            color: #666;
+            color: var(--dark-text-light);
         }
         
         .rank-badge {
@@ -289,27 +338,27 @@ $percentile_algorithms = calculatePercentileBoundaries($exam_stats);
         }
         
         .percentile-top10 {
-            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            background: var(--success);
             color: white;
         }
         
         .percentile-top25 {
-            background: linear-gradient(135deg, #8BC34A 0%, #689F38 100%);
+            background: #8BC34A;
             color: white;
         }
         
         .percentile-top50 {
-            background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
-            color: white;
+            background: var(--warning);
+            color: black;
         }
         
         .percentile-bottom25 {
-            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+            background: #FF9800;
             color: white;
         }
         
         .percentile-bottom10 {
-            background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
+            background: var(--danger);
             color: white;
         }
         
@@ -321,40 +370,56 @@ $percentile_algorithms = calculatePercentileBoundaries($exam_stats);
         }
         
         .chart-card {
-            background: white;
-            border-radius: 15px;
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .chart-card h5 {
+            color: white;
         }
         
         .algorithm-card {
-            background: white;
-            border-radius: 15px;
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 12px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
         }
         
         .algorithm-title {
             color: var(--primary);
             margin-bottom: 15px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #eee;
+            border-bottom: 1px solid var(--dark-border);
+        }
+        
+        .algorithm-card h4 {
+            color: white;
+        }
+        
+        .algorithm-card h6 {
+            color: var(--dark-text-light);
         }
         
         .boundary-item {
             display: flex;
             justify-content: space-between;
             padding: 8px 0;
-            border-bottom: 1px solid #f5f5f5;
+            border-bottom: 1px solid var(--dark-border);
+            color: var(--dark-text);
         }
         
         .exam-selector {
-            background: white;
-            border-radius: 10px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 8px;
             padding: 15px;
             margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .exam-selector .form-label {
+            color: var(--dark-text-light);
         }
         
         .medal-count {
@@ -387,16 +452,22 @@ $percentile_algorithms = calculatePercentileBoundaries($exam_stats);
         .search-input {
             width: 100%;
             padding: 12px 20px;
-            border: 2px solid #ddd;
+            border: 2px solid var(--dark-border);
             border-radius: 25px;
             font-size: 16px;
+            background: var(--dark-card);
+            color: white;
             transition: all 0.3s;
+        }
+        
+        .search-input::placeholder {
+            color: var(--dark-text-light);
         }
         
         .search-input:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
         
         .filter-buttons {
@@ -408,9 +479,9 @@ $percentile_algorithms = calculatePercentileBoundaries($exam_stats);
         
         .filter-btn {
             padding: 8px 20px;
-            border: 2px solid var(--primary);
-            background: white;
-            color: var(--primary);
+            border: 2px solid var(--dark-border);
+            background: var(--dark-card);
+            color: var(--dark-text);
             border-radius: 20px;
             cursor: pointer;
             transition: all 0.3s;
@@ -419,11 +490,25 @@ $percentile_algorithms = calculatePercentileBoundaries($exam_stats);
         .filter-btn.active {
             background: var(--primary);
             color: white;
+            border-color: var(--primary);
         }
         
         .filter-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .text-muted {
+            color: var(--dark-text-light) !important;
+        }
+        
+        .table-row strong {
+            color: white;
+        }
+        
+        .table-row div {
+            color: var(--dark-text);
         }
         
         @media (max-width: 1200px) {
@@ -455,6 +540,9 @@ $percentile_algorithms = calculatePercentileBoundaries($exam_stats);
         <div class="header-card">
             <div class="row align-items-center">
                 <div class="col-md-8">
+                    <a href="dashboard.php" class="home-icon" title="Go to Home">
+                        <i class="fas fa-home"></i>
+                    </a>
                     <h1><i class="fas fa-trophy trophy-animation me-3"></i>Exam Leaderboard</h1>
                     <p class="lead mb-0">See top performers and percentile rankings</p>
                 </div>
@@ -537,9 +625,9 @@ $percentile_algorithms = calculatePercentileBoundaries($exam_stats);
                 
                 <?php if (empty($leaderboard)): ?>
                     <div class="text-center py-5">
-                        <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
-                        <h4>No results yet for this exam</h4>
-                        <p class="text-muted">Be the first to take this exam!</p>
+                        <i class="fas fa-chart-line fa-3x mb-3" style="color: var(--dark-text-light);"></i>
+                        <h4 style="color: white;">No results yet for this exam</h4>
+                        <p style="color: var(--dark-text-light);">Be the first to take this exam!</p>
                     </div>
                 <?php else: ?>
                     <?php foreach ($leaderboard as $index => $student): 
@@ -687,10 +775,10 @@ $percentile_algorithms = calculatePercentileBoundaries($exam_stats);
             <?php endif; ?>
 
         <?php else: ?>
-            <div class="alert alert-info text-center py-5">
-                <i class="fas fa-exclamation-circle fa-3x mb-3"></i>
-                <h4>No exams available</h4>
-                <p>Please create exams first to see the leaderboard.</p>
+            <div class="alert text-center py-5" style="background: var(--dark-card); border: 1px solid var(--dark-border); color: var(--dark-text);">
+                <i class="fas fa-exclamation-circle fa-3x mb-3" style="color: var(--info);"></i>
+                <h4 style="color: white;">No exams available</h4>
+                <p style="color: var(--dark-text-light);">Please create exams first to see the leaderboard.</p>
             </div>
         <?php endif; ?>
     </div>
