@@ -3,6 +3,7 @@
 session_start();
 include '../db_connection.php';
 
+<<<<<<< HEAD
 // Check if questions table has options JSON column or individual columns
 try {
     $pdo->query("SELECT options FROM questions LIMIT 1");
@@ -11,6 +12,8 @@ try {
     $useJsonOptions = false;
 }
 
+=======
+>>>>>>> ddc0de7c3f954b4d531394e99259a86b3a9bff16
 $question_id = (int)$_GET['id'];
 $error = '';
 $success = '';
@@ -30,6 +33,7 @@ if (!$question) {
     exit();
 }
 
+<<<<<<< HEAD
 // Get options based on column type
 if ($useJsonOptions) {
     $options = json_decode($question['options'], true);
@@ -42,6 +46,23 @@ if ($useJsonOptions) {
     $option_b = $question['option_b'] ?? '';
     $option_c = $question['option_c'] ?? '';
     $option_d = $question['option_d'] ?? '';
+=======
+// Get options - prefer individual columns, fallback to JSON
+$option_a = $question['option_a'] ?? '';
+$option_b = $question['option_b'] ?? '';
+$option_c = $question['option_c'] ?? '';
+$option_d = $question['option_d'] ?? '';
+
+// Fallback: if individual columns are empty, try JSON options column
+if ((empty($option_a) || empty($option_b)) && !empty($question['options'])) {
+    $opts = json_decode($question['options'], true);
+    if (is_array($opts)) {
+        $option_a = $option_a ?: ($opts['a'] ?? $opts['A'] ?? '');
+        $option_b = $option_b ?: ($opts['b'] ?? $opts['B'] ?? '');
+        $option_c = $option_c ?: ($opts['c'] ?? $opts['C'] ?? '');
+        $option_d = $option_d ?: ($opts['d'] ?? $opts['D'] ?? '');
+    }
+>>>>>>> ddc0de7c3f954b4d531394e99259a86b3a9bff16
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -58,6 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error = "Question text and at least two options are required!";
     } else {
         try {
+<<<<<<< HEAD
             if ($useJsonOptions) {
                 $updated_options = [
                     'a' => $option_a,
@@ -81,6 +103,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 ");
                 $stmt->execute([$question_text, $option_a, $option_b, $option_c, $option_d, $correct_answer, $marks, $question_id]);
             }
+=======
+            // Always save to both individual columns AND JSON options column
+            $updated_options = [
+                'a' => $option_a,
+                'b' => $option_b,
+                'c' => $option_c,
+                'd' => $option_d
+            ];
+            $options_json = json_encode($updated_options);
+            
+            $stmt = $pdo->prepare("
+                UPDATE questions 
+                SET question_text = ?, option_a = ?, option_b = ?, option_c = ?, option_d = ?, options = ?, correct_answer = ?, marks = ? 
+                WHERE question_id = ?
+            ");
+            $stmt->execute([$question_text, $option_a, $option_b, $option_c, $option_d, $options_json, strtoupper($correct_answer), $marks, $question_id]);
+>>>>>>> ddc0de7c3f954b4d531394e99259a86b3a9bff16
             
             $success = "Question updated successfully!";
             header("refresh:2;url=manage_questions.php?exam_id=" . $question['exam_id']);
@@ -147,10 +186,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div class="form-group">
                     <label for="correct_answer">Correct Answer *</label>
                     <select id="correct_answer" name="correct_answer" required>
-                        <option value="a" <?php echo $question['correct_answer'] == 'a' ? 'selected' : ''; ?>>Option A</option>
-                        <option value="b" <?php echo $question['correct_answer'] == 'b' ? 'selected' : ''; ?>>Option B</option>
-                        <option value="c" <?php echo $question['correct_answer'] == 'c' ? 'selected' : ''; ?>>Option C</option>
-                        <option value="d" <?php echo $question['correct_answer'] == 'd' ? 'selected' : ''; ?>>Option D</option>
+                        <option value="A" <?php echo strtoupper($question['correct_answer']) == 'A' ? 'selected' : ''; ?>>Option A</option>
+                        <option value="B" <?php echo strtoupper($question['correct_answer']) == 'B' ? 'selected' : ''; ?>>Option B</option>
+                        <option value="C" <?php echo strtoupper($question['correct_answer']) == 'C' ? 'selected' : ''; ?>>Option C</option>
+                        <option value="D" <?php echo strtoupper($question['correct_answer']) == 'D' ? 'selected' : ''; ?>>Option D</option>
                     </select>
                 </div>
                 

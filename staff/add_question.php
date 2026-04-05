@@ -3,6 +3,7 @@
 session_start();
 include '../db_connection.php';
 
+<<<<<<< HEAD
 // Check if questions table has options JSON column or individual columns
 try {
     $pdo->query("SELECT options FROM questions LIMIT 1");
@@ -11,6 +12,8 @@ try {
     $useJsonOptions = false;
 }
 
+=======
+>>>>>>> ddc0de7c3f954b4d531394e99259a86b3a9bff16
 // Authentication check (optional - enable if needed)
 // if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
 //     header("Location: login.php");
@@ -45,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error = "Question text and at least two options are required!";
     } else {
         try {
+<<<<<<< HEAD
             if ($useJsonOptions) {
                 // Use JSON options column
                 $options = [
@@ -62,6 +66,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $stmt = $pdo->prepare("INSERT INTO questions (exam_id, question_text, option_a, option_b, option_c, option_d, correct_answer, marks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([$exam_id, $question_text, $option_a, $option_b, $option_c, $option_d, $correct_answer, $marks]);
             }
+=======
+            // Always save to both individual columns AND JSON options column
+            $options = [
+                'a' => $option_a,
+                'b' => $option_b,
+                'c' => $option_c,
+                'd' => $option_d
+            ];
+            $options_json = json_encode($options);
+            
+            $stmt = $pdo->prepare("INSERT INTO questions (exam_id, question_text, option_a, option_b, option_c, option_d, options, correct_answer, marks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$exam_id, $question_text, $option_a, $option_b, $option_c, $option_d, $options_json, strtoupper($correct_answer), $marks]);
+>>>>>>> ddc0de7c3f954b4d531394e99259a86b3a9bff16
             
             $success = "Question added successfully!";
             header("refresh:2;url=manage_questions.php?exam_id=" . $exam_id);
@@ -130,10 +147,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <div class="form-group">
                         <label for="correct_answer">Correct Answer *</label>
                         <select id="correct_answer" name="correct_answer" required>
-                            <option value="a">Option A</option>
-                            <option value="b">Option B</option>
-                            <option value="c">Option C</option>
-                            <option value="d">Option D</option>
+                            <option value="A">Option A</option>
+                            <option value="B">Option B</option>
+                            <option value="C">Option C</option>
+                            <option value="D">Option D</option>
                         </select>
                     </div>
                     

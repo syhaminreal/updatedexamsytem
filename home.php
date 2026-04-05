@@ -19,20 +19,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (empty($email) || empty($password)) {
         $error = "Please enter both email and password!";
     } else {
-        // For now, we'll use a simple check
-        // In production, you'd check against a users table
-        if ($email === 'student@example.com' && $password === 'password123') {
+        // Use database authentication
+        $stmt = $pdo->prepare("SELECT user_id, username, email, password_hash, full_name, user_type, is_active FROM users WHERE email = :email OR username = :email LIMIT 1");
+        $stmt->execute([':email' => $email]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$user) {
+            $error = "Invalid email or password!";
+        } elseif ($user['is_active'] != 1) {
+            $error = "Your account is inactive. Please contact administrator.";
+        } elseif (!password_verify($password, $user['password_hash'])) {
+            $error = "Invalid email or password!";
+        } else {
             // Set session variables
             $_SESSION['user_logged_in'] = true;
-            $_SESSION['user_id'] = 1;
-            $_SESSION['user_name'] = 'John Doe';
-            $_SESSION['user_email'] = $email;
-            $_SESSION['user_role'] = 'student';
+            $_SESSION['user_id'] = $user['user_id'];
+            $_SESSION['user_name'] = $user['username'];
+            $_SESSION['user_email'] = $user['email'];
+            $_SESSION['user_type'] = $user['user_type'];
+            $_SESSION['user_role'] = $user['user_type']; // Backward compatibility
+            $_SESSION['full_name'] = $user['full_name'];
+            
+            // Update last login
+            $update = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE user_id = ?");
+            $update->execute([$user['user_id']]);
             
             header("Location: dashboard.php");
             exit();
-        } else {
-            $error = "Invalid email or password!";
         }
     }
 }

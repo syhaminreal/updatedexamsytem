@@ -27,10 +27,16 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<<<<<<< HEAD
     <title>ExamPro - Online Examination Platform</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+=======
+    <title>Online Exam System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+>>>>>>> ddc0de7c3f954b4d531394e99259a86b3a9bff16
     <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -349,9 +355,31 @@ try {
                 font-size: 2rem;
             }
         }
+        
+        .home-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        
+        .home-icon:hover {
+            background: rgba(255,255,255,0.25);
+            transform: scale(1.1);
+            color: white;
+        }
     </style>
 </head>
 <body>
+<<<<<<< HEAD
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg">
         <div class="container">
@@ -373,6 +401,19 @@ try {
                     <div class="stats-number"><?php echo count($exams); ?></div>
                     <div class="stats-label">Available Exams</div>
                 </div>
+=======
+    <div class="container">
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <a href="staff/index.php" class="home-icon" title="Go to Dashboard">
+                <i class="fas fa-home"></i>
+            </a>
+            <h1 class="display-4 mb-3">📝 Online Exam System</h1>
+            <p class="lead mb-4">Take exams instantly without registration. Get results immediately!</p>
+            <div class="exam-count">
+                <h3><?php echo count($exams); ?> Exams Available</h3>
+                <p class="mb-0">Start any exam by clicking "Start Exam"</p>
+>>>>>>> ddc0de7c3f954b4d531394e99259a86b3a9bff16
             </div>
         </div>
     </section>
@@ -449,6 +490,7 @@ try {
         </div>
     </section>
 
+<<<<<<< HEAD
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
@@ -456,6 +498,19 @@ try {
                 <h3 class="footer-title">ExamPro</h3>
                 <p class="footer-text">Professional online examination platform designed for modern learning and assessment needs.</p>
                 <p class="footer-text">© <?php echo date('Y'); ?> ExamPro. All rights reserved.</p>
+=======
+        <!-- Footer -->
+        <footer class="text-center text-white mt-5 pt-4">
+            <p>
+                <a href="staff/index.php" class="text-white text-decoration-none">
+                    <i class="fas fa-home me-1"></i> Dashboard
+                </a> 
+                | &copy; <?php echo date('Y'); ?> Online Exam System. All rights reserved.
+            </p>
+            <p class="small">No registration required. Take exams directly and get instant results.</p>
+        </footer>
+    </div>
+>>>>>>> ddc0de7c3f954b4d531394e99259a86b3a9bff16
 
                 <div class="footer-links">
                     <a href="#" class="footer-link">
