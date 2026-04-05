@@ -1,5 +1,12 @@
 <?php
+session_start();
 require_once 'db_connection.php';
+
+// Check if user is logged in
+if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
+    header('Location: ../login.php');
+    exit();
+}
 ?>
 
 <!DOCTYPE html>

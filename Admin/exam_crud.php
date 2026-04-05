@@ -67,7 +67,7 @@ if (isset($_GET['delete_exam'])) {
                             echo "<td><span class='badge bg-" . getStatusColor($exam['exam_status']) . "'>{$exam['exam_status']}</span></td>";
                             echo "<td>
                                     <div class='btn-group'>
-                                        <a href='manage_questions.php?exam_id={$exam['exam_id']}' class='btn btn-sm btn-info' title='Manage Questions'>
+                                        <a href='mange_question.php?exam_id={$exam['exam_id']}' class='btn btn-sm btn-info' title='Manage Questions'>
                                             <i class='bi bi-question-circle'></i>
                                         </a>
                                         <a href='edit_exam.php?exam_id={$exam['exam_id']}' class='btn btn-sm btn-warning' title='Edit Exam'>

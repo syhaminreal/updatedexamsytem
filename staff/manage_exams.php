@@ -3,6 +3,14 @@
 session_start();
 require_once '../db_connection.php';
 
+// Check if is_deleted column exists
+try {
+    $pdo->query("SELECT is_deleted FROM exams LIMIT 1");
+    $useSoftDelete = true;
+} catch (PDOException $e) {
+    $useSoftDelete = false;
+}
+
 // Authentication (optional - enable if needed)
 // if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
 //     header("Location: login.php");
@@ -12,15 +20,32 @@ require_once '../db_connection.php';
 // Handle delete
 if (isset($_GET['delete'])) {
     $id = (int)$_GET['delete'];
-    $stmt = $pdo->prepare("UPDATE exams SET is_deleted = 1 WHERE exam_id = ?");
-    $stmt->execute([$id]);
-    header("Location: manage_exams.php?msg=deleted");
-    exit();
+    
+    try {
+        if ($useSoftDelete) {
+            $stmt = $pdo->prepare("UPDATE exams SET is_deleted = 1 WHERE exam_id = ?");
+        } else {
+            $stmt = $pdo->prepare("DELETE FROM exams WHERE exam_id = ?");
+        }
+        $stmt->execute([$id]);
+        header("Location: manage_exams.php?msg=deleted");
+        exit();
+    } catch (PDOException $e) {
+        die("Error deleting exam: " . $e->getMessage());
+    }
 }
 
-// Fetch all non-deleted exams
-$stmt = $pdo->query("SELECT * FROM exams WHERE is_deleted = 0 ORDER BY created_at DESC");
-$exams = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Fetch exams
+try {
+    if ($useSoftDelete) {
+        $stmt = $pdo->query("SELECT * FROM exams WHERE is_deleted = 0 ORDER BY created_at DESC");
+    } else {
+        $stmt = $pdo->query("SELECT * FROM exams ORDER BY created_at DESC");
+    }
+    $exams = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    die("Error fetching exams: " . $e->getMessage());
+}
 ?>
 
 <!DOCTYPE html>
@@ -29,8 +54,6 @@ $exams = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Exams</title>
-
-    <!-- Your CSS -->
     <link rel="stylesheet" href="./manage.css">
 </head>
 <body>
@@ -42,10 +65,7 @@ $exams = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <h1>Manage Exams</h1>
 
         <div class="header-actions">
-            <!-- ✅ BACK BUTTON -->
              <a href="index.php" class="btn btn-primary">Back</a>
-
-            <!-- ADD EXAM BUTTON -->
             <a href="create_exam.php" class="btn btn-primary">+ Add New Exam</a>
         </div>
     </div>

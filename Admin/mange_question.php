@@ -1,7 +1,19 @@
 <?php
+session_start();
 require_once 'db_connection.php';
 
-$exam_id = $_GET['exam_id'];
+// Check if user is logged in and is admin
+if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
+    header('Location: ../login.php');
+    exit();
+}
+
+// Check if user has admin/teacher role
+if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], ['admin', 'teacher'])) {
+    die("Unauthorized access!");
+}
+
+$exam_id = isset($_GET['exam_id']) ? intval($_GET['exam_id']) : 0;
 $stmt = $pdo->prepare("SELECT * FROM exam_table WHERE exam_id = ?");
 $stmt->execute([$exam_id]);
 $exam = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -46,7 +58,7 @@ if (isset($_GET['delete_question'])) {
             </div>
             <div class="card-body">
                 <?php
-                $stmt = $pdo->prepare("SELECT * FROM question_table WHERE exam_id = ? ORDER BY question_id");
+                $stmt = $pdo->prepare("SELECT * FROM questions WHERE exam_id = ? ORDER BY question_id");
                 $stmt->execute([$exam_id]);
                 $questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 

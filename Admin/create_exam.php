@@ -2,13 +2,13 @@
 require_once 'db_connection.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $exam_title = $_POST['exam_title'];
-    $exam_description = $_POST['exam_description'];
-    $exam_duration_minutes = $_POST['exam_duration_minutes'];
-    $total_marks = $_POST['total_marks'];
-    $passing_marks = $_POST['passing_marks'];
-    $exam_date = $_POST['exam_date'];
-    $exam_time = $_POST['exam_time'];
+    $exam_title = sanitize($_POST['exam_title']);
+    $exam_description = sanitize($_POST['exam_description']);
+    $exam_duration_minutes = intval($_POST['exam_duration_minutes']);
+    $total_marks = intval($_POST['total_marks']);
+    $passing_marks = intval($_POST['passing_marks']);
+    $exam_date = sanitize($_POST['exam_date']);
+    $exam_time = sanitize($_POST['exam_time']);
     
     $stmt = $pdo->prepare("INSERT INTO exam_table (exam_title, exam_description, exam_duration_minutes, total_marks, passing_marks, exam_date, exam_time) VALUES (?, ?, ?, ?, ?, ?, ?)");
     

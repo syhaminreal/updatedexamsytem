@@ -1,27 +1,37 @@
 <?php
-// admin/delete_exam.php
+// staff/delete_exam.php
 session_start();
 include '../db_connection.php';
 
-// Authentication check
-// if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-//     header("Location: login.php");
-//     exit();
-// }
-
-if (isset($_GET['id'])) {
-    $id = (int)$_GET['id'];
-    
-    // Soft delete using PDO
-    $stmt = $pdo->prepare("UPDATE exams SET is_deleted = 1 WHERE exam_id = ?");
-    
-    if ($stmt->execute([$id])) {
+try {
+    if (isset($_GET['id'])) {
+        $id = (int)$_GET['id'];
+        
+        // Check if is_deleted column exists
+        try {
+            $pdo->query("SELECT is_deleted FROM exams LIMIT 1");
+            $useSoftDelete = true;
+        } catch (PDOException $e) {
+            $useSoftDelete = false;
+        }
+        
+        if ($useSoftDelete) {
+            // Soft delete
+            $stmt = $pdo->prepare("UPDATE exams SET is_deleted = 1 WHERE exam_id = ?");
+            $stmt->execute([$id]);
+        } else {
+            // Hard delete (fallback)
+            $stmt = $pdo->prepare("DELETE FROM exams WHERE exam_id = ?");
+            $stmt->execute([$id]);
+        }
+        
         header("Location: manage_exams.php?msg=deleted");
+        exit();
     } else {
-        header("Location: manage_exams.php?error=delete_failed");
+        header("Location: manage_exams.php");
+        exit();
     }
-} else {
-    header("Location: manage_exams.php");
+} catch (PDOException $e) {
+    die("Error deleting exam: " . $e->getMessage());
 }
-exit();
 ?>

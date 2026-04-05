@@ -40,6 +40,25 @@ $stmt = $pdo->prepare("SELECT * FROM questions WHERE exam_id = ?");
 $stmt->execute([$exam_id]);
 $questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Process questions to ensure options are available
+foreach ($questions as &$question) {
+    // Check if options are stored as JSON
+    if (!empty($question['options']) && is_string($question['options'])) {
+        $json_options = json_decode($question['options'], true);
+        if (is_array($json_options)) {
+            $question['option_a'] = $json_options['a'] ?? '';
+            $question['option_b'] = $json_options['b'] ?? '';
+            $question['option_c'] = $json_options['c'] ?? '';
+            $question['option_d'] = $json_options['d'] ?? '';
+        }
+    }
+    // Ensure all option fields exist
+    $question['option_a'] = $question['option_a'] ?? '';
+    $question['option_b'] = $question['option_b'] ?? '';
+    $question['option_c'] = $question['option_c'] ?? '';
+    $question['option_d'] = $question['option_d'] ?? '';
+}
+
 /*
 |---------------------------------------------------------
 | Calculate result
@@ -126,7 +145,7 @@ if ($percentage >= 90) {
 }
 
 // Pass/fail status
-$status = ($marks_obtained >= $exam['passing_marks']) ? 'PASS' : 'FAIL';
+$status = ($percentage >= $exam['passing_marks']) ? 'PASS' : 'FAIL';
 
 /*
 |---------------------------------------------------------

@@ -1,13 +1,21 @@
 <?php
 // staff/manage_questions.php
 session_start();
-require '../db_connection.php'; // Make sure path is correct
+require '../db_connection.php';
+
+// Check if questions table has options JSON column or individual columns
+try {
+    $pdo->query("SELECT options FROM questions LIMIT 1");
+    $useJsonOptions = true;
+} catch (PDOException $e) {
+    $useJsonOptions = false;
+}
 
 $exam_id = (int)$_GET['exam_id'];
 
 // Fetch exam details
-$stmt = $pdo->prepare("SELECT exam_title FROM exams WHERE exam_id = :exam_id AND is_deleted = 0");
-$stmt->execute(['exam_id' => $exam_id]);
+$stmt = $pdo->prepare("SELECT exam_title FROM exams WHERE exam_id = ?");
+$stmt->execute([$exam_id]);
 $exam = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$exam) {
@@ -16,8 +24,8 @@ if (!$exam) {
 }
 
 // Fetch questions for this exam
-$stmt = $pdo->prepare("SELECT * FROM questions WHERE exam_id = :exam_id ORDER BY question_id ASC");
-$stmt->execute(['exam_id' => $exam_id]);
+$stmt = $pdo->prepare("SELECT * FROM questions WHERE exam_id = ? ORDER BY question_id ASC");
+$stmt->execute([$exam_id]);
 $questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
@@ -59,13 +67,23 @@ $questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <td><?php echo htmlspecialchars(substr($row['question_text'], 0, 100)); ?>...</td>
                             <td>
                                 <?php 
-                                $options = json_decode($row['options'], true);
-                                if (is_array($options)) {
-                                    echo implode('<br>', array_map('htmlspecialchars', $options));
+                                if ($useJsonOptions) {
+                                    $options = json_decode($row['options'], true);
+                                    if (is_array($options)) {
+                                        echo "A: " . htmlspecialchars($options['a'] ?? '') . "<br>";
+                                        echo "B: " . htmlspecialchars($options['b'] ?? '') . "<br>";
+                                        echo "C: " . htmlspecialchars($options['c'] ?? '') . "<br>";
+                                        echo "D: " . htmlspecialchars($options['d'] ?? '');
+                                    }
+                                } else {
+                                    echo "A: " . htmlspecialchars($row['option_a'] ?? '') . "<br>";
+                                    echo "B: " . htmlspecialchars($row['option_b'] ?? '') . "<br>";
+                                    echo "C: " . htmlspecialchars($row['option_c'] ?? '') . "<br>";
+                                    echo "D: " . htmlspecialchars($row['option_d'] ?? '');
                                 }
                                 ?>
                             </td>
-                            <td><?php echo htmlspecialchars($row['correct_answer']); ?></td>
+                            <td><?php echo strtoupper(htmlspecialchars($row['correct_answer'])); ?></td>
                             <td><?php echo $row['marks']; ?></td>
                             <td class="actions">
                                 <a href="edit_question.php?id=<?php echo $row['question_id']; ?>" class="btn-edit">Edit</a>

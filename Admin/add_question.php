@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary">Add Question</button>
-                        <a href="manage_questions.php?exam_id=<?php echo $exam_id; ?>" class="btn btn-secondary">Cancel</a>
+                        <a href="mange_question.php?exam_id=<?php echo $exam_id; ?>" class="btn btn-secondary">Cancel</a>
                     </div>
                 </form>
             </div>
