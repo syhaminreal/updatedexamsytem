@@ -2,7 +2,6 @@
 // staff/manage_questions.php
 session_start();
 require '../db_connection.php';
-<<<<<<< HEAD
 
 // Check if questions table has options JSON column or individual columns
 try {
@@ -11,8 +10,6 @@ try {
 } catch (PDOException $e) {
     $useJsonOptions = false;
 }
-=======
->>>>>>> ddc0de7c3f954b4d531394e99259a86b3a9bff16
 
 $exam_id = (int)$_GET['exam_id'];
 
@@ -70,7 +67,6 @@ $questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <td><?php echo htmlspecialchars(substr($row['question_text'], 0, 100)); ?>...</td>
                             <td>
                                 <?php 
-<<<<<<< HEAD
                                 if ($useJsonOptions) {
                                     $options = json_decode($row['options'], true);
                                     if (is_array($options)) {
@@ -84,22 +80,6 @@ $questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     echo "B: " . htmlspecialchars($row['option_b'] ?? '') . "<br>";
                                     echo "C: " . htmlspecialchars($row['option_c'] ?? '') . "<br>";
                                     echo "D: " . htmlspecialchars($row['option_d'] ?? '');
-=======
-                                // Prefer individual columns, fallback to JSON
-                                $opt_a = $row['option_a'] ?? '';
-                                $opt_b = $row['option_b'] ?? '';
-                                $opt_c = $row['option_c'] ?? '';
-                                $opt_d = $row['option_d'] ?? '';
-                                
-                                if ((empty($opt_a) || empty($opt_b)) && !empty($row['options'])) {
-                                    $opts = json_decode($row['options'], true);
-                                    if (is_array($opts)) {
-                                        $opt_a = $opt_a ?: ($opts['a'] ?? $opts['A'] ?? '');
-                                        $opt_b = $opt_b ?: ($opts['b'] ?? $opts['B'] ?? '');
-                                        $opt_c = $opt_c ?: ($opts['c'] ?? $opts['C'] ?? '');
-                                        $opt_d = $opt_d ?: ($opts['d'] ?? $opts['D'] ?? '');
-                                    }
->>>>>>> ddc0de7c3f954b4d531394e99259a86b3a9bff16
                                 }
                                 echo "A: " . htmlspecialchars($opt_a) . "<br>";
                                 echo "B: " . htmlspecialchars($opt_b) . "<br>";
