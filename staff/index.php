@@ -126,6 +126,19 @@ $top_exams = $top_exams_stmt->fetchAll(PDO::FETCH_ASSOC);
             font-size: 1.2em;
         }
         
+        .admin-navbar .brand a {
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .admin-navbar .brand a:hover {
+            color: #60a5fa;
+            transform: scale(1.05);
+        }
+        
         .admin-navbar .brand i {
             margin-right: 10px;
         }
@@ -474,7 +487,9 @@ $top_exams = $top_exams_stmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center">
                     <div class="brand">
-                        <i class="fas fa-shield-alt"></i> Exam Admin
+                        <a href="../Admin/profile.php" title="View Profile">
+                            <i class="fas fa-shield-alt"></i> Exam Admin
+                        </a>
                     </div>
                     <div class="ms-4 d-flex">
                         <a href="index.php" class="nav-link active">

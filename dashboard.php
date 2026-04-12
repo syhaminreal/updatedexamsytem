@@ -14,6 +14,29 @@ $user_id = $_SESSION['user_id'];
 $completed_exams = 0;
 $average_score = 0;
 $upcoming_exams = 3; // Default value
+
+// Fetch active exams from database
+$active_exams = [];
+try {
+    $stmt = $pdo->prepare("SELECT exam_id, exam_title, exam_description, exam_duration, total_marks, exam_status FROM exams WHERE exam_status = 'active' AND is_deleted = 0 LIMIT 6");
+    $stmt->execute();
+    $active_exams = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log("Error fetching exams: " . $e->getMessage());
+    $active_exams = [];
+}
+
+// Count questions for each exam
+function get_question_count($pdo, $exam_id) {
+    try {
+        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM questions WHERE exam_id = ?");
+        $stmt->execute([$exam_id]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['count'] ?? 0;
+    } catch (Exception $e) {
+        return 0;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en" class="dark-theme">
@@ -143,6 +166,20 @@ $upcoming_exams = 3; // Default value
             background: linear-gradient(135deg, var(--danger), #dc2626);
             color: white;
             box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+        }
+        
+        .user-avatar-link {
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .user-avatar-link:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
         }
         
         .dashboard {
@@ -522,9 +559,9 @@ $upcoming_exams = 3; // Default value
         </div>
         
         <div class="user-menu">
-            <div class="user-avatar" title="<?php echo htmlspecialchars($_SESSION['full_name']); ?>">
+            <a href="edit_profile.php" class="user-avatar user-avatar-link" title="Click to view your profile">
                 <?php echo strtoupper(substr($_SESSION['full_name'], 0, 1)); ?>
-            </div>
+            </a>
             <span>Welcome, <?php echo htmlspecialchars($_SESSION['full_name']); ?></span>
             <a href="logout.php" class="btn btn-secondary">
                 <i class="fas fa-sign-out-alt"></i> Logout
@@ -551,7 +588,7 @@ $upcoming_exams = 3; // Default value
                 </p>
             </div>
             <div class="user-badge">
-                <div class="user-avatar" style="width: 50px; height: 50px; font-size: 1.2rem;">
+                <div class="user-avatar" style="width: 50px; height: 50px; font-size: 1.2rem; border-radius: 50%;">
                     <?php echo strtoupper(substr($_SESSION['full_name'], 0, 1)); ?>
                 </div>
                 <div class="user-badge-info">
@@ -668,97 +705,57 @@ $upcoming_exams = 3; // Default value
         <div class="exams-section">
             <h2 class="section-title">
                 <span><i class="fas fa-fire"></i> Active Exams</span>
-                <a href="all_exams.php" class="btn btn-secondary">View All</a>
+                <a href="take_exam.php" class="btn btn-secondary">View All</a>
             </h2>
             
             <div class="exams-grid">
-                <!-- Exam 1 -->
-                <div class="exam-card">
-                    <span class="exam-status status-active">
-                        <i class="fas fa-circle"></i> Live Now
-                    </span>
-                    <h3 style="margin-bottom: 0.5rem;">Mathematics Final Exam</h3>
-                    <div class="exam-meta">
-                        <span><i class="far fa-clock"></i> 60 min</span>
-                        <span><i class="far fa-question-circle"></i> 40 Qs</span>
-                        <span><i class="fas fa-star"></i> 100 Marks</span>
+                <?php if (count($active_exams) > 0): ?>
+                    <?php foreach ($active_exams as $exam): 
+                        $question_count = get_question_count($pdo, $exam['exam_id']);
+                    ?>
+                    <div class="exam-card">
+                        <span class="exam-status status-active">
+                            <i class="fas fa-circle"></i> Available
+                        </span>
+                        <h3 style="margin-bottom: 0.5rem;"><?php echo htmlspecialchars($exam['exam_title']); ?></h3>
+                        <div class="exam-meta">
+                            <span><i class="far fa-clock"></i> <?php echo $exam['exam_duration']; ?> min</span>
+                            <span><i class="far fa-question-circle"></i> <?php echo $question_count; ?> Qs</span>
+                            <span><i class="fas fa-star"></i> <?php echo $exam['total_marks']; ?> Marks</span>
+                        </div>
+                        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                            <?php echo htmlspecialchars(substr($exam['exam_description'] ?? 'No description provided', 0, 100)) . '...'; ?>
+                        </p>
+                        <div class="exam-actions">
+                            <a href="take_exam.php?exam_id=<?php echo $exam['exam_id']; ?>" class="btn btn-primary">
+                                <i class="fas fa-play"></i> Start Exam
+                            </a>
+                            <a href="#" class="btn btn-secondary" onclick="return false;">
+                                <i class="fas fa-info-circle"></i> Details
+                            </a>
+                        </div>
                     </div>
-                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                        Covers algebra, geometry, and calculus concepts from chapters 1-12.
-                    </p>
-                    <div class="exam-actions">
-                        <a href="take_exam.php?id=1" class="btn btn-primary">
-                            <i class="fas fa-play"></i> Start Exam
-                        </a>
-                        <a href="exam_details.php?id=1" class="btn btn-secondary">
-                            <i class="fas fa-info-circle"></i> Details
-                        </a>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+                        <i class="fas fa-inbox" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem; display: block;"></i>
+                        <p style="color: var(--text-secondary); font-size: 1.1rem;">No active exams available at the moment.</p>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">Check back soon or contact your instructor.</p>
                     </div>
-                </div>
-                
-                <!-- Exam 2 -->
-                <div class="exam-card">
-                    <span class="exam-status status-upcoming">
-                        <i class="fas fa-clock"></i> Starts Tomorrow
-                    </span>
-                    <h3 style="margin-bottom: 0.5rem;">Science Quiz - Physics</h3>
-                    <div class="exam-meta">
-                        <span><i class="far fa-clock"></i> 30 min</span>
-                        <span><i class="far fa-question-circle"></i> 20 Qs</span>
-                        <span><i class="fas fa-star"></i> 50 Marks</span>
-                    </div>
-                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                        Focus on mechanics, thermodynamics, and modern physics concepts.
-                    </p>
-                    <div class="exam-actions">
-                        <button class="btn btn-warning" disabled>
-                            <i class="fas fa-clock"></i> Starts Soon
-                        </button>
-                        <a href="exam_details.php?id=2" class="btn btn-secondary">
-                            <i class="fas fa-info-circle"></i> Preview
-                        </a>
-                    </div>
-                </div>
-                
-                <!-- Exam 3 -->
-                <div class="exam-card">
-                    <span class="exam-status status-active">
-                        <i class="fas fa-circle"></i> Live Now
-                    </span>
-                    <h3 style="margin-bottom: 0.5rem;">English Grammar Test</h3>
-                    <div class="exam-meta">
-                        <span><i class="far fa-clock"></i> 45 min</span>
-                        <span><i class="far fa-question-circle"></i> 35 Qs</span>
-                        <span><i class="fas fa-star"></i> 75 Marks</span>
-                    </div>
-                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                        Grammar, vocabulary, and comprehension test for intermediate level.
-                    </p>
-                    <div class="exam-actions">
-                        <a href="take_exam.php?id=3" class="btn btn-primary">
-                            <i class="fas fa-play"></i> Start Exam
-                        </a>
-                        <a href="exam_details.php?id=3" class="btn btn-secondary">
-                            <i class="fas fa-info-circle"></i> Details
-                        </a>
-                    </div>
-                </div>
+                <?php endif; ?>
             </div>
         </div>
         
         <!-- Quick Actions -->
         <div style="margin-top: 3rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-            <a href="profile.php" class="btn btn-secondary">
-                <i class="fas fa-user-cog"></i> Edit Profile
-            </a>
             <a href="results.php" class="btn btn-secondary">
                 <i class="fas fa-chart-bar"></i> View Results
             </a>
-            <a href="index.php" class="btn btn-secondary">
-                <i class="fas fa-award"></i> Take exams
+            <a href="take_exam.php" class="btn btn-secondary">
+                <i class="fas fa-award"></i> All Exams
             </a>
-            <a href="exam_center.php" class="btn btn-secondary">
-                <i class="fas fa-question-circle"></i> Exam Center
+            <a href="leaderboard.php" class="btn btn-secondary">
+                <i class="fas fa-trophy"></i> Leaderboard
             </a>
         </div>
     </div>

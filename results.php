@@ -565,7 +565,7 @@ $view_exam_id = isset($_GET['exam_id']) ? intval($_GET['exam_id']) : 0;
             <a href="results.php" class="nav-link">
                 <i class="fas fa-chart-bar"></i> Results
             </a>
-            <a href="profile.php" class="nav-link">
+            <a href="edit_profile.php" class="nav-link">
                 <i class="fas fa-user"></i> Profile
             </a>
             <a href="logout.php" class="btn btn-secondary">

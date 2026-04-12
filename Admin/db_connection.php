@@ -1,7 +1,7 @@
 <?php
 // Database configuration
 $host = 'localhost';
-$dbname = 'exam_system';
+$dbname = 'exaam';
 $username = 'root';
 $password = '';
 
